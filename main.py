@@ -63,7 +63,6 @@ def process_json(input_json):
         output_json[ip] = {}
         if "ports" in data:
             output_json[ip]["ports"] = []
-            output_json[ip]["scripts"] = []
             for port in data["ports"]:
                 new_port = {}
                 for key in ["protocol", "portid"]:
@@ -74,20 +73,21 @@ def process_json(input_json):
                         new_port["cpe"] = port["cpe"][0]["cpe"]
                     else:
                         new_port["cpe"] = [cpe["cpe"] for cpe in port["cpe"]]
-
-                output_json[ip]["ports"].append(new_port)
                 if "scripts" in port:
+                    new_port["scripts"] = []
                     for script in port["scripts"]:
                         new_script = {}
                         if "raw" in script:
                             new_script["raw"] = script["raw"]
-                        output_json[ip]["scripts"].append(new_script)
+                        new_port["scripts"].append(new_script)
+                output_json[ip]["ports"].append(new_port)
         if "macaddress" in data:
             output_json[ip]["macaddress"] = {}
             for key in ["addr", "vendor"]:
                 if key in data["macaddress"]:
                     output_json[ip]["macaddress"][key] = data["macaddress"][key]
     return json.dumps(output_json, indent=4)
+
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -105,7 +105,7 @@ if __name__ == '__main__':
     print(address.ip_address)
     print(address.ports)
     print(Fore.LIGHTBLUE_EX + "IP: " + address.ip_address)
-    print(".\n".join([f"En el puerto {port} se está ejecutando el servicio {data['service_name']}" for port, data in address.ports.items()]))
+    print("\n".join([f"En el puerto {port} se está ejecutando el servicio {data['service_name']}." for port, data in address.ports.items()]))
 
     nmap = nmap3.Nmap()
     vulscan = nmap.nmap_version_detection("10.0.1.3", args="--script vulscan/vulscan.nse -p22,21")
