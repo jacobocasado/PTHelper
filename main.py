@@ -76,10 +76,9 @@ def process_json(input_json):
                 if "scripts" in port:
                     new_port["scripts"] = []
                     for script in port["scripts"]:
-                        new_script = {}
                         if "raw" in script:
-                            new_script["raw"] = script["raw"]
-                        new_port["scripts"].append(new_script)
+                            raw_parts = script["raw"].split("\n\n")
+                            new_port["scripts"].extend(raw_parts)
                 output_json[ip]["ports"].append(new_port)
         if "macaddress" in data:
             output_json[ip]["macaddress"] = {}
@@ -88,6 +87,14 @@ def process_json(input_json):
                     output_json[ip]["macaddress"][key] = data["macaddress"][key]
     return json.dumps(output_json, indent=4)
 
+
+def check_state(dictionary):
+    for key, value in dictionary.items():
+        if isinstance(value, dict):
+            state = value.get("state")
+            if isinstance(state, dict) and state.get("state") == "down":
+                print(f"Error: Host {key} is down")
+                exit(1)
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
@@ -102,9 +109,7 @@ if __name__ == '__main__':
 
     address = create_address_from_json(results)
 
-    print(address.ip_address)
-    print(address.ports)
-    print(Fore.LIGHTBLUE_EX + "IP: " + address.ip_address)
+    print(Fore.LIGHTBLUE_EX + "Escaneando IP: " + address.ip_address)
     print("\n".join([f"En el puerto {port} se está ejecutando el servicio {data['service_name']}." for port, data in address.ports.items()]))
 
     nmap = nmap3.Nmap()
@@ -112,4 +117,5 @@ if __name__ == '__main__':
 
     print(vulscan)
 
+    check_state(vulscan)
     print(process_json(vulscan))
