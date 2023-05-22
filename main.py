@@ -59,32 +59,33 @@ def create_address_from_json(json_data):
 
 def process_json(input_json):
     output_json = {}
-    for ip, data in input_json.items():
-        output_json[ip] = {}
-        if "ports" in data:
-            output_json[ip]["ports"] = []
-            for port in data["ports"]:
-                new_port = {}
-                for key in ["protocol", "portid"]:
-                    if key in port:
-                        new_port[key] = port[key]
-                if "cpe" in port:
-                    if len(port["cpe"]) == 1:
-                        new_port["cpe"] = port["cpe"][0]["cpe"]
-                    else:
-                        new_port["cpe"] = [cpe["cpe"] for cpe in port["cpe"]]
-                if "scripts" in port:
-                    new_port["scripts"] = []
-                    for script in port["scripts"]:
-                        if "raw" in script:
-                            raw_parts = script["raw"].split("\n\n")
-                            new_port["scripts"].extend(raw_parts)
-                output_json[ip]["ports"].append(new_port)
-        if "macaddress" in data:
-            output_json[ip]["macaddress"] = {}
-            for key in ["addr", "vendor"]:
-                if key in data["macaddress"]:
-                    output_json[ip]["macaddress"][key] = data["macaddress"][key]
+    # Procesamos solo el primer elemento, que es la IP. El resto de campos son ruido de vulners de momento.
+    ip, data = next(iter(input_json.items()))
+    output_json[ip] = {}
+    if "ports" in data:
+        output_json[ip]["ports"] = []
+        for port in data["ports"]:
+            new_port = {}
+            for key in ["protocol", "portid"]:
+                if key in port:
+                    new_port[key] = port[key]
+            if "cpe" in port:
+                if len(port["cpe"]) == 1:
+                    new_port["cpe"] = port["cpe"][0]["cpe"]
+                else:
+                    new_port["cpe"] = [cpe["cpe"] for cpe in port["cpe"]]
+            if "scripts" in port:
+                new_port["scripts"] = []
+                for script in port["scripts"]:
+                    if "raw" in script:
+                        raw_parts = script["raw"].split("\n\n")
+                        new_port["scripts"].extend(raw_parts)
+            output_json[ip]["ports"].append(new_port)
+    if "macaddress" in data:
+        output_json[ip]["macaddress"] = {}
+        for key in ["addr", "vendor"]:
+            if key in data["macaddress"]:
+                output_json[ip]["macaddress"][key] = data["macaddress"][key]
     return json.dumps(output_json, indent=4)
 
 
@@ -93,7 +94,7 @@ def check_state(dictionary):
         if isinstance(value, dict):
             state = value.get("state")
             if isinstance(state, dict) and state.get("state") == "down":
-                print(f"Error: Host {key} is down")
+                print(f"Error: Host {key} is down.\nMake sure host is correcly introduced and is reachable (aka. maybe you need proxychains).")
                 exit(1)
 
 # Press the green button in the gutter to run the script.
