@@ -1,4 +1,6 @@
 # This is a sample Python script.
+import argparse
+import ipaddress
 import json
 
 # Press Mayús+F10 to execute it or replace it with your code.
@@ -58,6 +60,9 @@ def create_address_from_json(json_data):
     return Address(ip_address, ports)
 
 def process_json(input_json):
+
+    check_host_alive(input_json)
+
     output_json = {}
     # Procesamos solo el primer elemento, que es la IP. El resto de campos son ruido de vulners de momento.
     ip, data = next(iter(input_json.items()))
@@ -86,10 +91,12 @@ def process_json(input_json):
         for key in ["addr", "vendor"]:
             if key in data["macaddress"]:
                 output_json[ip]["macaddress"][key] = data["macaddress"][key]
+
+    print(json.dumps(output_json, indent=4))
     return json.dumps(output_json, indent=4)
 
 
-def check_state(dictionary):
+def check_host_alive(dictionary):
     for key, value in dictionary.items():
         if isinstance(value, dict):
             state = value.get("state")
@@ -99,14 +106,26 @@ def check_state(dictionary):
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Process IP address and ports.')
+    parser.add_argument('-ip', dest='ip_address', type=str, help='IP address to scan')
+    parser.add_argument('-p', dest='ports', type=str, help='Ports to scan')
+    args = parser.parse_args()
+
+    try:
+        ipaddress.ip_address(args.ip_address)
+    except ValueError:
+        print("Invalid IP address")
+        exit(1)
+
+    ports = args.ports.split(',')
 
     fade_text()
 
     nmap = nmap3.Nmap()
-    os_results = nmap.nmap_os_detection("10.0.1.3")
+    os_results = nmap.nmap_os_detection(args.ip_address)
 
     nmap = nmap3.NmapHostDiscovery()
-    results = nmap.nmap_portscan_only("10.0.1.3", args="-p21,22")
+    results = nmap.nmap_portscan_only(args.ip_address, args=f"-p{args.ports}")
 
     address = create_address_from_json(results)
 
@@ -114,9 +133,8 @@ if __name__ == '__main__':
     print("\n".join([f"En el puerto {port} se está ejecutando el servicio {data['service_name']}." for port, data in address.ports.items()]))
 
     nmap = nmap3.Nmap()
-    vulscan = nmap.nmap_version_detection("10.0.1.3", args="--script vulscan/vulscan.nse -p22,21")
+    vulscan = nmap.nmap_version_detection(args.ip_address, args=f"--script vulscan/vulscan.nse -p{args.ports}")
 
     print(vulscan)
 
-    check_state(vulscan)
-    print(process_json(vulscan))
+    process_json(vulscan)
