@@ -1,0 +1,7 @@
+1. Git to download the repo, in my case.
+2. Pycharm to create the project.
+3. Python 3.10
+4. PYTHON - NMAP3
+4. nmap in the local host.
+5. vms
+6. vulscan script

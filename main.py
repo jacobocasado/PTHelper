@@ -86,11 +86,12 @@ def process_json(input_json):
                         raw_parts = script["raw"].split("\n\n")
                         new_port["scripts"].extend(raw_parts)
             output_json[ip]["ports"].append(new_port)
-    if "macaddress" in data:
-        output_json[ip]["macaddress"] = {}
-        for key in ["addr", "vendor"]:
-            if key in data["macaddress"]:
-                output_json[ip]["macaddress"][key] = data["macaddress"][key]
+    ## if "macaddress" in data:
+        ## output_json[ip]["macaddress"] = {}
+        ## for key in ["addr", "vendor"]:
+            ## if key in data["macaddress"]:
+                ## output_json[ip]["macaddress"][key] = data["macaddress"][key]
+
 
     print(json.dumps(output_json, indent=4))
     return json.dumps(output_json, indent=4)
