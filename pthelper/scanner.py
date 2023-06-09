@@ -24,7 +24,6 @@ class Scanner:
 
 
 class NmapScanner(Scanner):
-
     def __init__(self, ip_address, ports, mode):
         if mode == "nmap":
             print(ip_address, ports, mode)

@@ -46,6 +46,8 @@ if __name__ == '__main__':
     parser.add_argument('-ip', dest='ip_address', type=str, help='IP address to scan')
     parser.add_argument('-p', dest='ports', type=str, help='Ports to scan')
     parser.add_argument('-scanner', dest='scanner', type=str, help='Scanner tool to use (available: nmap)')
+    parser.add_argument('-reporter', dest='reporter', type=str, help='Reporter tool to use (available: docxtpl)')
+
     args = parser.parse_args()
 
     try:
@@ -70,4 +72,5 @@ if __name__ == '__main__':
     scanner.performhostdiscovery()
     scanner.performvulnerabilitydiscovery()
 
+    reporter = Reporter(args.reporter)
 
