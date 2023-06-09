@@ -2,8 +2,12 @@ import json
 from colorama import init, Fore, Style
 
 from nmap3 import nmap3
+
+
 # Scanner class must receive an IP address and an array of ports.
 class Scanner:
+
+
     def __new__(cls, ip_address, ports, mode):
         scanner_classes = {
             "nmap": NmapScanner,
@@ -16,9 +20,16 @@ class Scanner:
         self.ip_address = ip_address
         self.ports = ports
         self.mode = mode
+        self.parsed_ports = {}
 
 
 class NmapScanner(Scanner):
+
+    def __init__(self, ip_address, ports, mode):
+        if mode == "nmap":
+            print(ip_address, ports, mode)
+            super().__init__(ip_address, ports, mode)
+
     def check_host_alive(self, dictionary):
         for key, value in dictionary.items():
             if isinstance(value, dict):
@@ -63,35 +74,32 @@ class NmapScanner(Scanner):
         print(json.dumps(output_json, indent=4))
         return json.dumps(output_json, indent=4)
 
-    def __init__(self, ip_address, ports, mode):
-        if mode == "nmap":
-            print(ip_address, ports, mode)
-            super().__init__(ip_address, ports, mode)
-            nmap_instance = nmap3.Nmap()
-            os_results = nmap_instance.nmap_os_detection(ip_address)
-            nmap_instance = nmap3.NmapHostDiscovery()
-            results = nmap_instance.nmap_portscan_only(ip_address, args=f"-p{ports}")
+    def performhostdiscovery(self):
+        nmap_instance = nmap3.NmapHostDiscovery()
+        results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
 
-            ip_address = list(results.keys())[0]
-            ports_data = results[ip_address]['ports']
-            ports = {}
-            for port in ports_data:
-                port_id = port['portid']
-                port_info = {
-                    'protocol': port['protocol'],
-                    'state': port['state'],
-                    'service_name': port['service']['name']
-                }
-                ports[port_id] = port_info
+        ip_address = list(results.keys())[0]
+        ports_data = results[ip_address]['ports']
 
-            print(Fore.LIGHTBLUE_EX + "Escaneando IP: " + ip_address)
-            print("\n".join(
-                [f"En el puerto {port} se está ejecutando el servicio {data['service_name']}." for port, data in
-                 ports.items()]))
+        for port in ports_data:
+            port_id = port['portid']
+            port_info = {
+                'protocol': port['protocol'],
+                'state': port['state'],
+                'service_name': port['service']['name']
+            }
+            self.parsed_ports[port_id] = port_info
 
-            nmap_instance = nmap3.Nmap()
-            vulscan = nmap_instance.nmap_version_detection(self.ip_address, args=f"--script vulscan/vulscan.nse -p{self.ports}")
+    def performvulnerabilitydiscovery(self):
+        print(Fore.LIGHTBLUE_EX + "Escaneando IP: " + self.ip_address)
+        print("\n".join(
+            [f"En el puerto {port} se está ejecutando el servicio {data['service_name']}." for port, data in
+             self.parsed_ports.items()]))
 
-            print(vulscan)
+        nmap_instance = nmap3.Nmap()
+        vulscan = nmap_instance.nmap_version_detection(self.ip_address,
+                                                       args=f"--script vulscan/vulscan.nse -p{self.ports}")
 
-            self.process_json(vulscan)
+        print(vulscan)
+
+        self.process_json(vulscan)

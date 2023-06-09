@@ -3,11 +3,10 @@ import argparse
 import ipaddress
 import colorama
 
-from docxtpl import DocxTemplate, InlineImage
-from docx.shared import Mm
-import jinja2
+
 
 from scanner import Scanner
+from reporter import Reporter
 
 # Press Mayús+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
@@ -68,16 +67,7 @@ if __name__ == '__main__':
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
     scanner = Scanner(args.ip_address, ports, args.scanner)
+    scanner.performhostdiscovery()
+    scanner.performvulnerabilitydiscovery()
 
-    tpl = DocxTemplate('templates/template.docx')
-    jinja_env = jinja2.Environment(autoescape=True)
-    tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
 
-    context = {
-        'corp_name': 'jtsec',
-        'team_name': 'jcasado'
-
-    }
-    tpl.render(context)
-
-    tpl.save('projects/tfm/tfm_demo.docx')
