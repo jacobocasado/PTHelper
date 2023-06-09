@@ -66,7 +66,6 @@ class NmapScanner(Scanner):
     def __init__(self, ip_address, ports, mode):
         if mode == "nmap":
             print(ip_address, ports, mode)
-            print(" meinstancio")
             super().__init__(ip_address, ports, mode)
             nmap_instance = nmap3.Nmap()
             os_results = nmap_instance.nmap_os_detection(ip_address)
