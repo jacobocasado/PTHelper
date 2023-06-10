@@ -1,10 +1,12 @@
 # This is a sample Python script.
 import argparse
 import ipaddress
+import os
 
 from scanner import Scanner
 from reporter import Reporter
 from banner import Banner
+from reporter import Reporter
 
 # Press Mayús+F10 to execute it or replace it with your code.
 # Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings
@@ -19,6 +21,7 @@ if __name__ == '__main__':
     parser.add_argument('-p', dest='ports', type=str, help='Ports to scan')
     parser.add_argument('-scanner', dest='scanner', type=str, help='Scanner tool to use (available: nmap)')
     parser.add_argument('-reporter', dest='reporter', type=str, help='Reporter tool to use (available: docxtpl)')
+    parser.add_argument('-project', dest='project', type=str, help='Project to store information (e.g., TFM)')
 
     args = parser.parse_args()
 
@@ -40,8 +43,11 @@ if __name__ == '__main__':
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
     scanner = Scanner(args.ip_address, ports, args.scanner)
-    scanner.performhostdiscovery()
-    scanner.performvulnerabilitydiscovery()
+    parsed_ports = scanner.performhostdiscovery()
+    print(parsed_ports)
+    parsed_vulns = scanner.performvulnerabilitydiscovery()
+    print(parsed_vulns)
 
-    reporter = Reporter(args.reporter)
+    if args.project:
+        reporter = Reporter(args.reporter, args.project)
 

@@ -6,8 +6,6 @@ from nmap3 import nmap3
 
 # Scanner class must receive an IP address and an array of ports.
 class Scanner:
-
-
     def __new__(cls, ip_address, ports, mode):
         scanner_classes = {
             "nmap": NmapScanner,
@@ -25,21 +23,9 @@ class Scanner:
 
 class NmapScanner(Scanner):
     def __init__(self, ip_address, ports, mode):
-        if mode == "nmap":
-            print(ip_address, ports, mode)
-            super().__init__(ip_address, ports, mode)
-
-    def check_host_alive(self, dictionary):
-        for key, value in dictionary.items():
-            if isinstance(value, dict):
-                state = value.get("state")
-                if isinstance(state, dict) and state.get("state") == "down":
-                    print(
-                        f"Error: Host {key} is down.\nMake sure host is correcly introduced and is reachable (aka. maybe you need proxychains).")
-                    exit(1)
+        super().__init__(ip_address, ports, mode)
 
     def process_json(self, input_json):
-        self.check_host_alive(input_json)
 
         output_json = {}
         # Procesamos solo el primer elemento, que es la IP. El resto de campos son ruido de vulners de momento.
@@ -89,6 +75,8 @@ class NmapScanner(Scanner):
             }
             self.parsed_ports[port_id] = port_info
 
+        return self.parsed_ports
+
     def performvulnerabilitydiscovery(self):
         print(Fore.LIGHTBLUE_EX + "Escaneando IP: " + self.ip_address)
         print("\n".join(
@@ -99,6 +87,4 @@ class NmapScanner(Scanner):
         vulscan = nmap_instance.nmap_version_detection(self.ip_address,
                                                        args=f"--script vulscan/vulscan.nse -p{self.ports}")
 
-        print(vulscan)
-
-        self.process_json(vulscan)
+        return self.process_json(vulscan)
