@@ -18,38 +18,55 @@ class Reporter:
 
     def __init__(self, mode, existingproject):
         self.mode = mode
-        self.projectexists = os.path.exists(os.path.join('projects', existingproject, 'config.json'))
-
+        self.PROJECTPATH = os.path.join('projects', existingproject)
+        self.CONFIGFILE = os.path.join(self.PROJECTPATH, 'config.json')
+        self.RESULTSFILE = os.path.join(self.PROJECTPATH, 'results.json')
+        self.projectexists = os.path.exists(self.CONFIGFILE)
 class DocxJinjaTemplateReporter(Reporter):
     def __init__(self, mode, existingproject):
         super().__init__(mode, existingproject)
-        self.project_path = os.path.join('projects', existingproject)
 
         if self.projectexists == False:
-            os.makedirs(self.project_path)
-            with open(os.path.join(self.project_path, 'results.json'), 'w') as f:
+            os.makedirs(self.PROJECTPATH, exist_ok=True)
+            with open(self.RESULTSFILE, 'w') as f:
                 json.dump({}, f)
-            company_name = input('Introduce el nombre de la empresa: ')
-            config = {'company_name': company_name}
-            config_path = os.path.join(self.project_path, 'config.json')
-            with open(config_path, 'w') as f:
+
+            corp_name = input('Insert the target name: ')
+            corp_address = input('Insert the target contact e-mail address: ')
+            config = {'corp_name': corp_name,
+                      'corp_address': corp_address}
+
+            with open(self.CONFIGFILE, 'w') as f:
                 json.dump(config, f)
 
-    tpl = DocxTemplate('templates/template.docx')
-    jinja_env = jinja2.Environment(autoescape=True)
-    tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
+        tpl = DocxTemplate('templates/template.docx')
+        jinja_env = jinja2.Environment(autoescape=True)
+        tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
 
-    # TODO: Add these context information into a json configuration file that will be also specified as a program arg.
-    # 1. add program arg into the constructor.
-    # 2. with that program arg create a subfolder in projects folder, store a JSON with all the information.
-    # 2.1 note into the TBD things the interactive option of the user to add these project parameters as prompt or cmdline and not change json.
-    context = {
-        'corp_name': 'jtsec',
-        # maybe some config from a general tool config file, as the team name.
-        'team_name': 'jcasado'
+        # TODO: Add these context information into a json configuration file that will be also specified as a program arg.
+        # 1. add program arg into the constructor.
+        # 2. with that program arg create a subfolder in projects folder, store a JSON with all the information.
+        # 2.1 note into the TBD things the interactive option of the user to add these project parameters as prompt or cmdline and not change json.
 
-    }
-    tpl.render(context)
 
-    # this has to be an instance parameter.
-    # tpl.save('projects/tfm/tfm_demo.docx')
+        # Load OUR PERSONAL TOOL CONFIG FILE
+        config_file = open('config.json')
+        context = json.load(config_file)
+
+        # Load the desired project CONFIG FILE
+        project_config_file = open(self.CONFIGFILE)
+        context_project = json.load(project_config_file)
+
+        # Load the desired project RESULTS FILE
+        project_results_file = open(self.RESULTSFILE)
+        context_results = json.load(project_results_file)
+
+        context.update(context_project)
+        context.update(context_results)
+
+        print(context)
+
+        tpl.render(context)
+
+        # this has to be an instance parameter.
+        tpl.save('projects/tfm/tfm_demo.docx')

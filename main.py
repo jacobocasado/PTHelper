@@ -1,6 +1,7 @@
 # This is a sample Python script.
 import argparse
 import ipaddress
+import json
 import os
 
 from scanner import Scanner
@@ -38,6 +39,26 @@ if __name__ == '__main__':
             ports.append(port)
     else:
         ports = args.ports.split(',')
+
+    CONFIG_PATH = 'config.json'
+
+    if not os.path.exists(CONFIG_PATH):
+        print("Looks like this is the first time you have opened the tool. \n"
+              "Let's perform a basic configuration! The information you insert will appear in the reports.")
+
+        team_name = input('Organization name (or personal name): ')
+        team_abbreviature = input('Abbreviature for Organization name (or personal name): ')
+        pentester_name = input('Your name: ')
+        pentester_email = input('Your e-mail address: ')
+
+        config = {'team_name': team_name,
+                  'team_abbreviature' : team_abbreviature,
+                  'pentester_name': pentester_name,
+                  'pentester_email': pentester_email
+                  }
+        # TODO ask for default toolset, as scanner, reporter, etc.
+        with open(CONFIG_PATH, 'w') as f:
+            json.dump(config, f)
 
     # TODO: class interface with colors and stuff, or, at least, comment it.
     # TODO: perform scan methods, and add them to the diagram.
