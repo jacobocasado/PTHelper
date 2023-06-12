@@ -1,14 +1,12 @@
 import json
 from colorama import init, Fore, Style
-
 from nmap3 import nmap3
-
 
 # Scanner class must receive an IP address and an array of ports.
 class Scanner:
     def __new__(cls, ip_address, ports, mode):
         scanner_classes = {
-            "nmap": NmapScanner,
+            "nmap": NmapScanner
             # Agrega aquí otras clases para otros valores del tercer parámetro
         }
         scanner_class = scanner_classes.get(mode, Scanner)
@@ -19,7 +17,6 @@ class Scanner:
         self.ports = ports
         self.mode = mode
         self.parsed_ports = {}
-
 
 class NmapScanner(Scanner):
     def __init__(self, ip_address, ports, mode):

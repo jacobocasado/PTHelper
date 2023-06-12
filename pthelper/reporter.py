@@ -1,9 +1,9 @@
 import json
 import os
+import jinja2
 
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
-import jinja2
 
 class Reporter:
     def __new__(cls, mode, existingproject):
