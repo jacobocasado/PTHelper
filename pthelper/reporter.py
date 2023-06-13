@@ -28,8 +28,6 @@ class DocxJinjaTemplateReporter(Reporter):
 
         if self.projectexists == False:
             os.makedirs(self.PROJECTPATH, exist_ok=True)
-            with open(self.RESULTSFILE, 'w') as f:
-                json.dump({}, f)
 
             corp_name = input('Insert the target name: ')
             corp_address = input('Insert the target contact e-mail address: ')
@@ -39,9 +37,9 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(self.CONFIGFILE, 'w') as f:
                 json.dump(config, f)
 
-        tpl = DocxTemplate('templates/template.docx')
+        self.tpl = DocxTemplate('templates/template.docx')
         jinja_env = jinja2.Environment(autoescape=True)
-        tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
+        self.tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
 
         # TODO: Add these context information into a json configuration file that will be also specified as a program arg.
         # 1. add program arg into the constructor.
@@ -57,16 +55,41 @@ class DocxJinjaTemplateReporter(Reporter):
         project_config_file = open(self.CONFIGFILE)
         context_project = json.load(project_config_file)
 
+        # TODO ver como se managea esto, si el escanner edita esto o le pasa el context al reporter.
         # Load the desired project RESULTS FILE
-        project_results_file = open(self.RESULTSFILE)
-        context_results = json.load(project_results_file)
+        #project_results_file = open(self.RESULTSFILE)
+        #context_results = json.load(project_results_file)
 
-        context.update(context_project)
-        context.update(context_results)
+        #context.update(context_project)
+        #context.update(context_results)
 
         print(context)
 
-        tpl.render(context)
+        self.tpl.render(context)
 
         # this has to be an instance parameter.
-        tpl.save('projects/tfm/tfm_demo.docx')
+        self.tpl.save('projects/tfm/tfm_demo.docx')
+
+    def process(self, context):
+        results_file = 'results.json'
+        if os.path.exists(self.RESULTSFILE):
+            with open(self.RESULTSFILE, 'r') as f:
+                existing_data = json.load(f)
+                # Buscar si la etiqueta ya existe en los datos existentes
+                found = False
+                for row in existing_data['port_context_rows']:
+                    if row['label'] == context['port_context_rows'][0]['label']:
+                        row['cols'] = context['port_context_rows'][0]['cols']
+                        found = True
+                        break
+                # Si no se encuentra la etiqueta, agregar una nueva entrada
+                if not found:
+                    existing_data['port_context_rows'].extend(context['port_context_rows'])
+        else:
+            existing_data = context
+
+        with open(self.RESULTSFILE, 'w') as f:
+            json.dump(existing_data, f, indent=4)
+
+        self.tpl.render(existing_data)
+        self.tpl.save('projects/tfm/tfm_demo.docx')

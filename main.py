@@ -10,9 +10,9 @@ from banner import Banner
 from reporter import Reporter
 
 
-# TODO comment all pieces of the code.
-# TODO conversacional agent is a module.
-# TODO gettext python para que la traduccion sea modular
+# TODO Comment everything
+# TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
+# TODO gettext python so the output and the report is language-modular.
 
 if __name__ == '__main__':
 
@@ -106,11 +106,13 @@ if __name__ == '__main__':
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
 
+
     # Instance the Scanner object with the IP address, the ports as an array and the scanner mode.
+    print(ports)
     scanner = Scanner(args.ip_address, ports, args.scanner)
     # Perform basic port scanning and parsing into a defined output
     # (read README.md to see the output format and implement the scanner classes accordingly).
-    parsed_ports = scanner.performhostdiscovery()
+    parsed_ports, port_context = scanner.performhostdiscovery()
     print(parsed_ports)
     # Perform vulnerability scanning over these ports and parsing into a defined output
     # (read README.md to see the output format and implement the scanner classes accordingly).
@@ -122,4 +124,5 @@ if __name__ == '__main__':
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
         reporter = Reporter(args.reporter, args.project)
+        reporter.process(port_context)
 
