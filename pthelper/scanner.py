@@ -41,11 +41,15 @@ class NmapScanner(Scanner):
                 services = []
                 products = []
                 versions = []
+                cves = []
+
                 for port in data.get('ports', []):
+                    port_cve = []
                     ports.append(port.get('portid'))
                     protocols.append(port.get('protocol'))
                     service = port.get('service', {})
                     service_name = service.get('name')
+                    scripts = port.get('scripts')
                     if service_name:
                         services.append(service_name)
                     product = service.get('product')
@@ -55,6 +59,16 @@ class NmapScanner(Scanner):
                     if version:
                         versions.append(version)
                     cpe.extend([c['cpe'] for c in port.get('cpe', [])])
+                    # Añadir CVEs
+                    if scripts:
+                        for script in scripts:
+                            if 'data' in script:
+                                for cpe_info, cpe_data in script['data'].items():
+                                    if 'children' in cpe_data:
+                                        for child in cpe_data['children']:
+                                            if child['type'] == 'cve':
+                                                port_cve.append({'id': child['id'], 'cvss': child['cvss'], 'exploitable': child['is_exploit'], })
+                    cves.append(port_cve)
                 result[ip]['cpe'] = list(set(cpe))
                 result[ip]['os'] = data.get('osmatch', {}).get('name')
                 result[ip]['ports'] = ports
@@ -62,6 +76,8 @@ class NmapScanner(Scanner):
                 result[ip]['services'] = list(set(services))
                 result[ip]['products'] = list(set(products))
                 result[ip]['versions'] = list(set(versions))
+                result[ip]['cves'] = cves
+
         return result
     def get_open_ports(self, json_data):
         for port_data in json_data:
@@ -84,11 +100,11 @@ class NmapScanner(Scanner):
         vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
                                                            args=f"-sV --script vulners -p{','.join(self.open_ports)}")
 
-        print(vulners_raw)
         vulners_formatted = self.parse_json(vulners_raw)
 
+
         self.port_context = {
-            'port_context_columns': ['Ports', 'Service', 'CPE', 'SCRIPTS'],
+            'port_context_columns': ['Ports', 'Service', 'CPE', 'CVE'],
             'port_context_rows': [
                 {
                     'label': f'{self.ip_address}',

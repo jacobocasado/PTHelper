@@ -6,7 +6,6 @@ from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
 from colorama import init, Fore
 
-
 class Reporter:
     def __new__(cls, mode, existingproject):
 
