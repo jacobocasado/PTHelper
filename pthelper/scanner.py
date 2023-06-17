@@ -18,8 +18,9 @@ class Scanner:
         self.ip_address = ip_address
         self.ports = ports
         self.mode = mode
-        self.parsed_ports = {}
-
+        self.open_ports = []
+        self.port_context = None
+        init()
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first Scanner type available.
 class NmapScanner(Scanner):
@@ -27,100 +28,85 @@ class NmapScanner(Scanner):
     # Call the parent class (Scanner) to receive parameters.
     def __init__(self, ip_address, ports, mode):
         super().__init__(ip_address, ports, mode)
+        print(Fore.MAGENTA + f"Initializing {mode} scanner module on {ip_address}. Be ready!")
 
-    # Instance method to process the JSON that nmap3 returns after the vulnerability discovery
-    # and return the information as specified in the Scanner class for the "performvulnerabilitydiscovery" method.
-    def process_json(self, input_json):
+    def parse_json(self, json_data):
+        result = {}
+        for ip, data in json_data.items():
+            if isinstance(data, dict):
+                result[ip] = {}
+                cpe = []
+                ports = []
+                protocols = []
+                services = []
+                products = []
+                versions = []
+                for port in data.get('ports', []):
+                    ports.append(port.get('portid'))
+                    protocols.append(port.get('protocol'))
+                    service = port.get('service', {})
+                    service_name = service.get('name')
+                    if service_name:
+                        services.append(service_name)
+                    product = service.get('product')
+                    if product:
+                        products.append(product)
+                    version = service.get('version')
+                    if version:
+                        versions.append(version)
+                    cpe.extend([c['cpe'] for c in port.get('cpe', [])])
+                result[ip]['cpe'] = list(set(cpe))
+                result[ip]['os'] = data.get('osmatch', {}).get('name')
+                result[ip]['ports'] = ports
+                result[ip]['protocols'] = list(set(protocols))
+                result[ip]['services'] = list(set(services))
+                result[ip]['products'] = list(set(products))
+                result[ip]['versions'] = list(set(versions))
+        return result
+    def get_open_ports(self, json_data):
+        for port_data in json_data:
+            if port_data.get('state') == 'open':
+                print(Fore.LIGHTMAGENTA_EX + f"[ENUM] Port {port_data.get('portid')} is OPEN.")
+                print(Fore.MAGENTA + f"Adding the port to the advanced port scan phase.")
+                self.open_ports.append(port_data.get('portid'))
 
-        output_json = {}
-        # We get the IP address from the Nmap3 JSON
-        ip, data = next(iter(input_json.items()))
-        output_json[ip] = {}
-
-        # We look for ports in the JSON
-        if "ports" in data:
-            output_json[ip]["ports"] = []
-            # For each of the ports we attach the useful information.
-            for port in data["ports"]:
-                new_port = {}
-                for key in ["protocol", "portid"]:
-                    if key in port:
-                        new_port[key] = port[key]
-                if "cpe" in port:
-                    if len(port["cpe"]) == 1:
-                        new_port["cpe"] = port["cpe"][0]["cpe"]
-                    else:
-                        new_port["cpe"] = [cpe["cpe"] for cpe in port["cpe"]]
-                # If the port has attached vulnerabilities, attach them.
-                if "scripts" in port:
-                    new_port["scripts"] = []
-                    for script in port["scripts"]:
-                        if "raw" in script:
-                            raw_parts = script["raw"].split("\n\n")
-                            new_port["scripts"].extend(raw_parts)
-                output_json[ip]["ports"].append(new_port)
-
-        print(json.dumps(output_json, indent=4))
-        return json.dumps(output_json, indent=4)
-
-    # Method that performs a port discovery on the host, identifying which of the ports are alive.
-    # This method returns the specified format needed for the "performhosdiscovery" class method in Scanner.
-    def performhostdiscovery(self):
+    def openportdiscovery(self):
         # Instantiate the Nmap3 scanner.
         nmap_instance = nmap3.NmapHostDiscovery()
         # Perform the portscan on the specified port range by the user, and in the IP specified.
-        results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{','.join(map(str, self.ports))}")
-        # We extract the port information from the nmap3 output.
+        results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
+        # We extract the open ports and save them in the instance.
         ports_data = results[self.ip_address]['ports']
+        self.get_open_ports(ports_data)
 
-        ports = []
-        protocols = []
-        states = []
-        service_names = []
+    def performvulnerabilitydiscovery(self):
+        nmap_instance = nmap3.Nmap()
+        vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
+                                                           args=f"-sV --script vulners -p{','.join(self.open_ports)}")
 
-        # For each of the port, extract the information required for the Scanner class.
-        for port in ports_data:
-            port_id = port['portid']
-            port_protocol = port['protocol']
-            port_state = port['state']
-            port_service_name = port['service']['name']
+        print(vulners_raw)
+        vulners_formatted = self.parse_json(vulners_raw)
 
-            ports.append(port_id)
-            protocols.append(port_protocol)
-            states.append(port_state)
-            service_names.append(port_service_name)
-
-            port_info = {
-                'protocol': port_protocol,
-                'state': port_state,
-                'service_name': port_service_name
-            }
-            self.parsed_ports[port_id] = port_info
-
-        # Return an array of the information PER HOST
-        # TODO check if this can be a nested array so each row has again subrows.
-        # This way each IP (row) has one subrow per open port.
-        port_context = {
-            'port_context_columns': ['Ports', 'Protocols', 'State', 'Service name'],
+        self.port_context = {
+            'port_context_columns': ['Ports', 'Service', 'CPE', 'SCRIPTS'],
             'port_context_rows': [
                 {
                     'label': f'{self.ip_address}',
-                    'cols': [ports, protocols, service_names]
+                    'cols': [
+                        '\n'.join(map(str, vulners_formatted[self.ip_address]['ports'])),
+                        '\n'.join(vulners_formatted[self.ip_address]['services']),
+                        '\n'.join(vulners_formatted[self.ip_address]['cpe'])
+                    ]
                 }
             ]
         }
 
-        return self.parsed_ports, port_context
-    # Method that performs a vulneraiblity discovery on the ports found open by the scanner.
-    # Returns the specified output for the Scanner method.
-    def performvulnerabilitydiscovery(self):
-        print(Fore.LIGHTBLUE_EX + "Scanning IP: " + self.ip_address)
-        print("\n".join(
-            [f"At {port} service {data['service_name']} is being executed." for port, data in
-             self.parsed_ports.items()]))
+        print(Fore.LIGHTMAGENTA_EX + f"[ENUM] Vulnerability scan finished. The results of the scan are the following:")
 
-        nmap_instance = nmap3.Nmap()
-        vulscan = nmap_instance.nmap_version_detection(self.ip_address,
-                                                       args=f"--script vulscan/vulscan.nse -p{self.ports}")
+    def scan(self):
 
-        return self.process_json(vulscan)
+        self.openportdiscovery()
+
+        self.performvulnerabilitydiscovery()
+
+        return self.port_context

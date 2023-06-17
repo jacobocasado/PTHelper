@@ -4,9 +4,12 @@ import jinja2
 
 from docxtpl import DocxTemplate, InlineImage
 from docx.shared import Mm
+from colorama import init, Fore
+
 
 class Reporter:
     def __new__(cls, mode, existingproject):
+
         reporter_classes = {
             "docxtpl_jinja": DocxJinjaTemplateReporter,
             # Agrega aquí otras clases para otros valores del tercer parámetro
@@ -18,10 +21,16 @@ class Reporter:
 
     def __init__(self, mode, existingproject):
         self.mode = mode
+        self.CONFIG_PATH = 'config.json'
         self.PROJECTPATH = os.path.join('projects', existingproject)
         self.CONFIGFILE = os.path.join(self.PROJECTPATH, 'config.json')
         self.RESULTSFILE = os.path.join(self.PROJECTPATH, 'results.json')
+        self.BASE_CORP_LOGO = 'resources/corp_logo.png'
+        self.DESIRED_CORP_LOGO = os.path.join('projects', existingproject, 'corp_logo.png')
         self.projectexists = os.path.exists(self.CONFIGFILE)
+        init()
+
+
 class DocxJinjaTemplateReporter(Reporter):
     def __init__(self, mode, existingproject):
         super().__init__(mode, existingproject)
@@ -39,16 +48,16 @@ class DocxJinjaTemplateReporter(Reporter):
 
         self.tpl = DocxTemplate('templates/template.docx')
         jinja_env = jinja2.Environment(autoescape=True)
-        self.tpl.replace_media('resources/corp_logo.png', 'resources/desired_corp_logo.png')
+        if os.path.exists(self.DESIRED_CORP_LOGO):
+            self.tpl.replace_media(self.BASE_CORP_LOGO, self.DESIRED_CORP_LOGO)
 
         # TODO: Add these context information into a json configuration file that will be also specified as a program arg.
         # 1. add program arg into the constructor.
         # 2. with that program arg create a subfolder in projects folder, store a JSON with all the information.
         # 2.1 note into the TBD things the interactive option of the user to add these project parameters as prompt or cmdline and not change json.
 
-
         # Load OUR PERSONAL TOOL CONFIG FILE
-        config_file = open('config.json')
+        config_file = open(self.CONFIG_PATH)
         context = json.load(config_file)
 
         # Load the desired project CONFIG FILE
@@ -62,8 +71,6 @@ class DocxJinjaTemplateReporter(Reporter):
 
         #context.update(context_project)
         #context.update(context_results)
-
-        print(context)
 
         self.tpl.render(context)
 

@@ -15,7 +15,6 @@ banner = [
 class Banner:
 
     def fade_text():
-        colorama.init()
         gradient = [colorama.Fore.LIGHTMAGENTA_EX, colorama.Fore.MAGENTA, colorama.Fore.BLUE,
                     colorama.Fore.LIGHTBLUE_EX]
         for line in banner:

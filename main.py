@@ -1,14 +1,13 @@
-# This is a sample Python script.
 import argparse
 import ipaddress
 import json
 import os
+import re
 
 from scanner import Scanner
-from reporter import Reporter
 from banner import Banner
 from reporter import Reporter
-
+import argparse
 
 # TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
@@ -16,10 +15,13 @@ from reporter import Reporter
 
 if __name__ == '__main__':
 
-    # Specify the configuration file, to save user presets like name, language, email, etc.
+
+    # Configuration file for the pentester. Replace it also in the Reporter class if modified.
     CONFIG_PATH = 'config.json'
+    # Specify the configuration file, to save user presets like name, language, email, etc.
     COMPATIBLE_LANGUAGES = ["ES"]
     COMPATIBLE_SCANNERS = ["nmap"]
+
     # Call the banner function to show the banner
     Banner.fade_text()
 
@@ -27,8 +29,24 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
     # Add the argument to process the IP address
     parser.add_argument('-ip', dest='ip_address', type=str, help='IP address to scan')
+
     # Add the argument to process the port range
-    parser.add_argument('-p', dest='ports', type=str, help='Ports to scan')
+    def check_ports(value):
+        # Comprueba si el valor es un rango de puertos
+        if re.match(r'^\d+-\d+$', value):
+            ports = value.split('-')
+            start, end = int(ports[0]), int(ports[1])
+            if start > end:
+                raise argparse.ArgumentTypeError(f"El rango de puertos {value} no es válido")
+        # Comprueba si el valor es una lista de puertos separados por comas
+        elif re.match(r'^\d+(,\d+)*$', value):
+            ports = [int(port) for port in value.split(',')]
+        else:
+            raise argparse.ArgumentTypeError(f"El formato de puertos {value} no es válido")
+        return value
+
+    parser.add_argument('-p', dest='ports', type=check_ports, help='Ports to scan')
+
     # Add the argument to specify the type of scanner to use
     # TODO check the scanner is in the scanner list
     parser.add_argument('-scanner', dest='scanner', type=str, help='Scanner tool to use (available: nmap)')
@@ -50,15 +68,6 @@ if __name__ == '__main__':
         print("Invalid IP address")
         exit(1)
 
-    # Code block to check if the port argument is a port range and if they are, parse the ports into a vector.
-    # TODO: Pass this into a function.
-    ports = []
-    if '-' in args.ports:
-        start_port, end_port = args.ports.split('-')
-        for port in range(int(start_port), int(end_port) + 1):
-            ports.append(port)
-    else: # If it not in port range and comma list, just add the ports.
-        ports = args.ports.split(',')
 
     # If there is no configuration file found in the route, configure the tool.
     # Most of the configuration is used later, to add it in the report template dinamically.
@@ -106,23 +115,16 @@ if __name__ == '__main__':
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
 
-
     # Instance the Scanner object with the IP address, the ports as an array and the scanner mode.
-    print(ports)
-    scanner = Scanner(args.ip_address, ports, args.scanner)
+    scanner = Scanner(args.ip_address, args.ports, args.scanner)
     # Perform basic port scanning and parsing into a defined output
     # (read README.md to see the output format and implement the scanner classes accordingly).
-    parsed_ports, port_context = scanner.performhostdiscovery()
-    print(parsed_ports)
-    # Perform vulnerability scanning over these ports and parsing into a defined output
-    # (read README.md to see the output format and implement the scanner classes accordingly).
-    parsed_vulns = scanner.performvulnerabilitydiscovery()
-    print(parsed_vulns)
+    basic_context = scanner.scan()
 
     # If the reporter tool mode and the project is specified by the user,
     # instance the Reporter object.
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
         reporter = Reporter(args.reporter, args.project)
-        reporter.process(port_context)
+        reporter.process(basic_context)
 
