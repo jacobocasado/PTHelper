@@ -7,6 +7,8 @@ from Scanner.scanner import Scanner
 from banner import Banner
 from Reporter.reporter import Reporter
 import argparse
+from config import pthelper_config
+from config.pthelper_config import PTHelperConfig
 
 # TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
@@ -14,12 +16,7 @@ import argparse
 
 if __name__ == '__main__':
 
-
-    # Configuration file for the pentester. Replace it also in the Reporter class if modified.
-    CONFIG_PATH = 'config.json'
-    # Specify the configuration file, to save user presets like name, language, email, etc.
-    COMPATIBLE_LANGUAGES = ["ES"]
-    COMPATIBLE_SCANNERS = ["nmap"]
+    pthelper_config = PTHelperConfig()
 
     # Call the banner function to show the banner
     Banner.fade_text()
@@ -59,6 +56,12 @@ if __name__ == '__main__':
     # Parse all the arguments
     args = parser.parse_args()
 
+    pthelper_config.PROJECTPATH = os.path.join('projects', args.project)
+    pthelper_config.CONFIGFILE = os.path.join(pthelper_config.PROJECTPATH, 'config.json')
+    pthelper_config.CONFIGFILE = os.path.join(pthelper_config.PROJECTPATH, 'results.json')
+    pthelper_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
+    pthelper_config.PROJECTEXISTS = os.path.exists(pthelper_config.CONFIGFILE)
+
     # Code block to check if the IP address has an IP address format
     # TODO: Pass this into a function.
     try:
@@ -71,7 +74,7 @@ if __name__ == '__main__':
     # If there is no configuration file found in the route, configure the tool.
     # Most of the configuration is used later, to add it in the report template dinamically.
     # Generally executed on first tool usage. Delete the file in CONFIG_PATH to restart the configuration.
-    if not os.path.exists(CONFIG_PATH):
+    if not os.path.exists(pthelper_config.CONFIG_PATH):
         print("Looks like this is the first time you have opened the tool. \n"
               "Let's perform a basic configuration! The information you insert will appear in the reports.")
 
@@ -82,17 +85,17 @@ if __name__ == '__main__':
         pentester_email = input('Your e-mail address: ')
         # For the language, ensure that the user-specified lanuage is in the language list.
         # The language list is in the COMPATIBLE_LANGUAGES variable.
-        default_language = input(f"Your preferred language (available: {COMPATIBLE_LANGUAGES}): ")
-        while default_language not in COMPATIBLE_LANGUAGES:
+        default_language = input(f"Your preferred language (available: {pthelper_config.COMPATIBLE_LANGUAGES}): ")
+        while default_language not in pthelper_config.COMPATIBLE_LANGUAGES:
             print("This tool is not available in the specified language (yet).")
-            print(f"The available languages are: {COMPATIBLE_LANGUAGES}")
-            default_language = input(f"Your preferred language (available: {COMPATIBLE_LANGUAGES}): ")
+            print(f"The available languages are: {pthelper_config.COMPATIBLE_LANGUAGES}")
+            default_language = input(f"Your preferred language (available: {pthelper_config.COMPATIBLE_LANGUAGES}): ")
 
-        default_scanner = input(f"Your preferred scanner type (available: {COMPATIBLE_SCANNERS}): ")
-        while default_scanner not in COMPATIBLE_SCANNERS:
+        default_scanner = input(f"Your preferred scanner type (available: {pthelper_config.COMPATIBLE_SCANNERS}): ")
+        while default_scanner not in pthelper_config.COMPATIBLE_SCANNERS:
             print("This tool does not use the specified scanner type.")
-            print(f"The available scanner types are: {COMPATIBLE_SCANNERS}")
-            default_scanner = input(f"Your preferred scanner type (available: {COMPATIBLE_SCANNERS}): ")
+            print(f"The available scanner types are: {pthelper_config.COMPATIBLE_SCANNERS}")
+            default_scanner = input(f"Your preferred scanner type (available: {pthelper_config.COMPATIBLE_SCANNERS}): ")
         # TODO ask default reporter
         # TODO ask default planner
 
@@ -107,7 +110,7 @@ if __name__ == '__main__':
                   'default_scanner': default_scanner
                   }
         # Dump the dictionary into the file in CONFIG_PATH
-        with open(CONFIG_PATH, 'w') as f:
+        with open(pthelper_config.CONFIG_PATH, 'w') as f:
             json.dump(config, f)
 
     # TODO: class interface with colors and stuff, or, at least, comment it.
@@ -124,7 +127,7 @@ if __name__ == '__main__':
     # instance the Reporter object.
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
-        reporter = Reporter(args.reporter, args.project)
+        Reporter.set_mode(args.reporter)
         # TODO see what do I do with the context.
-        reporter.process(basic_context)
+        Reporter.process(basic_context)
 
