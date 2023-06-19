@@ -7,7 +7,7 @@ from docx.shared import Mm
 from colorama import init, Fore
 
 class Reporter:
-    def __new__(cls, mode, existingproject):
+    def __new__(cls, mode, project):
 
         reporter_classes = {
             "docxtpl_jinja": DocxJinjaTemplateReporter,
@@ -15,8 +15,8 @@ class Reporter:
 
         }
 
-        scanner_class = reporter_classes.get(mode, Reporter)
-        return super(Reporter, cls).__new__(scanner_class)
+        reporter_class = reporter_classes.get(mode, Reporter)
+        return super(Reporter, cls).__new__(reporter_class)
 
     def __init__(self, mode, existingproject):
         self.mode = mode

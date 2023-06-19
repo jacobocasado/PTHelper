@@ -1,4 +1,6 @@
 import json
+
+import nvdlib
 from colorama import init, Fore, Style
 from nmap3 import nmap3
 
@@ -66,9 +68,18 @@ class NmapScanner(Scanner):
                                 for cpe_info, cpe_data in script['data'].items():
                                     if 'children' in cpe_data:
                                         for child in cpe_data['children']:
-                                            if child['type'] == 'cve':
                                                 port_cve.append({'id': child['id'], 'cvss': child['cvss'], 'exploitable': child['is_exploit'], })
                     cves.append(port_cve)
+
+                    # TODO add this list into CVE and check for duplicates.
+                    #keyword = product + ' ' + version
+                    #print(keyword)
+                    #searchresult = nvdlib.searchCVE(keywordSearch=keyword, keywordExactMatch=True)
+
+                    # Imprimir los IDs de los CVEs encontrados
+                    #for result in searchresult:
+                     #   print(result)
+
                 result[ip]['cpe'] = list(set(cpe))
                 result[ip]['os'] = data.get('osmatch', {}).get('name')
                 result[ip]['ports'] = ports
@@ -98,9 +109,11 @@ class NmapScanner(Scanner):
     def performvulnerabilitydiscovery(self):
         nmap_instance = nmap3.Nmap()
         vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
-                                                           args=f"-sV --script vulners -p{','.join(self.open_ports)}")
+                                                           args=f"--script vulners -p{','.join(self.open_ports)}")
 
+        print(vulners_raw)
         vulners_formatted = self.parse_json(vulners_raw)
+        print(vulners_formatted)
 
 
         self.port_context = {

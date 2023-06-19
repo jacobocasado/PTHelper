@@ -1,12 +1,11 @@
-import argparse
 import ipaddress
 import json
 import os
 import re
 
-from scanner import Scanner
+from Scanner.scanner import Scanner
 from banner import Banner
-from reporter import Reporter
+from Reporter.reporter import Reporter
 import argparse
 
 # TODO Comment everything
@@ -126,5 +125,6 @@ if __name__ == '__main__':
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
         reporter = Reporter(args.reporter, args.project)
+        # TODO see what do I do with the context.
         reporter.process(basic_context)
 
