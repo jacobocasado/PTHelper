@@ -8,16 +8,13 @@ from banner import Banner
 from Reporter.reporter import Reporter
 import argparse
 from config import pthelper_config
-from config.pthelper_config import PTHelperConfig
+from config.pthelper_config import pthelper_config
 
 # TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
 # TODO gettext python so the output and the report is language-modular.
 
 if __name__ == '__main__':
-
-    pthelper_config = PTHelperConfig()
-
     # Call the banner function to show the banner
     Banner.fade_text()
 
@@ -58,7 +55,7 @@ if __name__ == '__main__':
 
     pthelper_config.PROJECTPATH = os.path.join('projects', args.project)
     pthelper_config.CONFIGFILE = os.path.join(pthelper_config.PROJECTPATH, 'config.json')
-    pthelper_config.CONFIGFILE = os.path.join(pthelper_config.PROJECTPATH, 'results.json')
+    pthelper_config.RESULTSFILE = os.path.join(pthelper_config.PROJECTPATH, 'results.json')
     pthelper_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
     pthelper_config.PROJECTEXISTS = os.path.exists(pthelper_config.CONFIGFILE)
 
@@ -127,7 +124,8 @@ if __name__ == '__main__':
     # instance the Reporter object.
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
-        Reporter.set_mode(args.reporter)
+        reporter = Reporter(args.reporter)
+        reporter.report()
         # TODO see what do I do with the context.
-        Reporter.process(basic_context)
+        reporter.process(basic_context)
 

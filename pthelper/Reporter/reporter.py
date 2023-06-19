@@ -4,33 +4,34 @@ import jinja2
 
 from docxtpl import DocxTemplate
 from colorama import init, Fore
-from config.pthelper_config import PTHelperConfig
 
-pthelper_config = PTHelperConfig()
-
-
+from config.pthelper_config import pthelper_config
 
 class Reporter:
-    mode = None
 
-    @classmethod
-    def set_mode(cls, mode):
-        cls.mode = mode
+    def __init__(self, mode):
+        self.set_mode(mode)
 
-    @classmethod
-    def report(cls):
-        print('Reporting in mode:', cls.mode)
+    def set_mode(self, mode):
+        ModeClass = self.mode_classes.get(mode)
+        if ModeClass is None:
+            raise ValueError(f'Unsupported mode: {mode}')
+        self.mode = ModeClass()
 
-    @classmethod
-    def process(cls, basic_context):
-        pass
+    def report(self):
+        self.mode.report()
+
+    def process(self, basic_context):
+        self.mode.process(basic_context)
 
 
 class DocxJinjaTemplateReporter(Reporter):
-    @classmethod
-    def report(cls):
+    def __init__(self):
+        pass
+
+    def report(self):
         super().set_mode('docxtpl_jinja')
-        if pthelper_config.PROJECTEXISTS == False:
+        if not pthelper_config.PROJECTEXISTS:
             os.makedirs(pthelper_config.PROJECTPATH, exist_ok=True)
 
             corp_name = input('Insert the target name: ')
@@ -53,12 +54,11 @@ class DocxJinjaTemplateReporter(Reporter):
         context_project = json.load(project_config_file)
 
         tpl.render(context)
+        tpl.render(context_project)
 
         tpl.save('projects/tfm/tfm_demo.docx')
 
-    @classmethod
-    def process(cls, context):
-        results_file = 'results.json'
+    def process(self, context):
         if os.path.exists(pthelper_config.RESULTSFILE):
             with open(pthelper_config.RESULTSFILE, 'r') as f:
                 existing_data = json.load(f)
@@ -75,3 +75,8 @@ class DocxJinjaTemplateReporter(Reporter):
 
         with open(pthelper_config.RESULTSFILE, 'w') as f:
             json.dump(existing_data, f)
+
+
+Reporter.mode_classes = {
+        'docxtpl_jinja': DocxJinjaTemplateReporter,
+    }

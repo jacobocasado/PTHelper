@@ -14,3 +14,5 @@ class PTHelperConfig:
     DESIRED_CORP_LOGO = None
     PROJECTEXISTS = False
 
+
+pthelper_config = PTHelperConfig()
