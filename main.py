@@ -6,6 +6,7 @@ import re
 from Scanner.scanner import Scanner
 from banner import Banner
 from Reporter.reporter import Reporter
+from NLPAgent.agent import chatgptagent
 import argparse
 from config import pthelper_config
 from config.pthelper_config import pthelper_config

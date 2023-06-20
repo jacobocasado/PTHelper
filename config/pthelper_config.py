@@ -14,5 +14,15 @@ class PTHelperConfig:
     DESIRED_CORP_LOGO = None
     PROJECTEXISTS = False
 
+    ERROR_WAIT_TIME = 5
+    NLPAGENTMODEL = "gpt-3.5-turbo"
+    NLPAGENTCONTEXT = "Cada vez que hables, tienes que decir KLK!!!"
+    CHATGPT_PROXIES: dict = dataclasses.field(
+        default_factory=lambda: {
+            "http": "",
+            "https": "",
+        }
+    )
+
 
 pthelper_config = PTHelperConfig()
