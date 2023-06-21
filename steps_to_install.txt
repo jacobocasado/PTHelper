@@ -2,6 +2,6 @@
 2. Pycharm to create the project.
 3. Python 3.10 w/pip 22.3.1
 4. PYTHON - NMAP3
-4. nmap in the local host.
+4. nmap in the local host. version 7.92
 5. vms
-6. vulscan script
+6. vulners script
