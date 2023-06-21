@@ -15,6 +15,7 @@ class PTHelperConfig:
     PROJECTEXISTS = False
     CONVERSATIONPATH = None
     OPENAI_API_KEY = "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"
+    HISTORY_LENGTH = 20
 
     ERROR_WAIT_TIME = 5
     NLPAGENTMODEL = "gpt-3.5-turbo"

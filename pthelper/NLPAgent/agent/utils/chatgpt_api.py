@@ -43,7 +43,7 @@ class ChatGPTAPI:
     def __init__(self):
         openai.api_key = pthelper_config.NLPAGENTCONTEXT
         openai.proxy = pthelper_config.CHATGPT_PROXIES
-        self.history_length = 5  # maintain 5 messages in the history. (5 chat memory)
+        self.history_length = pthelper_config.HISTORY_LENGTH # maintain 5 messages in the history. (5 chat memory)
         self.conversation_dict: Dict[str, Conversation] = {}
 
     def count_token(self, messages) -> int:
@@ -86,7 +86,7 @@ class ChatGPTAPI:
         -------
             compressed_message: str
         """
-        if self.config.model == "gpt-4":
+        if pthelper_config.NLPAGENTMODEL == "gpt-4":
             token_limit = 8000
         else:
             token_limit = 4000
@@ -110,7 +110,7 @@ class ChatGPTAPI:
         return raw_message
 
     def chatgpt_completion(
-        self, history: List, model="gpt-3.5-turbo", temperature=0.5
+        self, history: List, model="gpt-3.5-turbo", temperature=0.25
     ) -> str:
         if pthelper_config.NLPAGENTMODEL == "gpt-4":
             model = "gpt-4"
