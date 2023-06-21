@@ -203,6 +203,8 @@ class ChatGPTAPI:
 
         # create a new conversation with a new uuid
         conversation_id = str(uuid1())
+        with open(pthelper_config.CONVERSATIONFILE, "w") as file:
+            file.write(conversation_id)
         conversation: Conversation = Conversation()
         conversation.conversation_id = conversation_id
         conversation.message_list.append(message)

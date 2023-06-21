@@ -3,6 +3,9 @@ import json
 import os
 import re
 
+import openai
+
+from NLPAgent.agent.utils.chatgpt_api import ChatGPTAPI
 from Scanner.scanner import Scanner
 from banner import Banner
 from Reporter.reporter import Reporter
@@ -59,6 +62,7 @@ if __name__ == '__main__':
     pthelper_config.RESULTSFILE = os.path.join(pthelper_config.PROJECTPATH, 'results.json')
     pthelper_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
     pthelper_config.PROJECTEXISTS = os.path.exists(pthelper_config.CONFIGFILE)
+    pthelper_config.CONVERSATIONFILE = os.path.join(pthelper_config.PROJECTPATH, 'conversation_id.txt')
 
     # Code block to check if the IP address has an IP address format
     # TODO: Pass this into a function.
@@ -129,4 +133,10 @@ if __name__ == '__main__':
         reporter.report()
         # TODO see what do I do with the context.
         reporter.process(scan_context)
+
+    chatgpt = ChatGPTAPI()
+    openai.api_key = pthelper_config.OPENAI_API_KEY
+    result, conversation_id = chatgpt.send_new_message("Hello, please answer me with klk manin")
+    print(result)
+
 
