@@ -119,7 +119,7 @@ if __name__ == '__main__':
     scanner = Scanner(args.ip_address, args.ports, args.scanner)
     # Perform basic port scanning and parsing into a defined output
     # (read README.md to see the output format and implement the scanner classes accordingly).
-    basic_context = scanner.scan()
+    scan_context = scanner.scan()
 
     # If the reporter tool mode and the project is specified by the user,
     # instance the Reporter object.
@@ -128,5 +128,5 @@ if __name__ == '__main__':
         reporter = Reporter(args.reporter)
         reporter.report()
         # TODO see what do I do with the context.
-        reporter.process(basic_context)
+        reporter.process(scan_context)
 

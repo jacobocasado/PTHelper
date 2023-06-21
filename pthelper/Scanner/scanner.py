@@ -1,28 +1,28 @@
-import json
-
-import nvdlib
 from colorama import init, Fore, Style
 from nmap3 import nmap3
 
-# Scanner class must receive an IP address and an array of ports.
-# Example input: 192.168.1.1, [21,22,80,443]
+# Define a Scanner class that takes in ip_address, ports, and mode of scan
 class Scanner:
+    # Use __new__ to create a new instance of the scanner_class based on the provided mode
     def __new__(cls, ip_address, ports, mode):
+        # A dictionary to map different scanning modes to respective classes
         scanner_classes = {
             "nmap": NmapScanner
-            # Add here future scanner modes with the flag that the user has to introduce and the children class name.
+            # For future scanner modes, add the user-defined flag and the corresponding child class name here
         }
+        # Get the scanner_class from the dictionary, default is Scanner itself
         scanner_class = scanner_classes.get(mode, Scanner)
         return super(Scanner, cls).__new__(scanner_class)
 
-    # Basic scanner initialization.
+    # Initialize the Scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
     def __init__(self, ip_address, ports, mode):
         self.ip_address = ip_address
         self.ports = ports
         self.mode = mode
         self.open_ports = []
         self.port_context = None
-        init()
+        init() # Initialize the colorama
+
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first Scanner type available.
 class NmapScanner(Scanner):
@@ -90,6 +90,10 @@ class NmapScanner(Scanner):
                 result[ip]['cves'] = cves
 
         return result
+
+    # Define a method to extract open ports from JSON data returned by nmap3
+    # This method looks through the data for each port, and if the state of the port is 'open',
+    # it prints a message and adds the port to the list of open ports for this instance
     def get_open_ports(self, json_data):
         for port_data in json_data:
             if port_data.get('state') == 'open':
@@ -97,25 +101,25 @@ class NmapScanner(Scanner):
                 print(Fore.MAGENTA + f"Adding the port to the advanced port scan phase.")
                 self.open_ports.append(port_data.get('portid'))
 
+    # Define a method to perform a scan of open ports
+    # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
+    # It then extracts the open ports from the scan results using the get_open_ports method defined above
     def openportdiscovery(self):
-        # Instantiate the Nmap3 scanner.
         nmap_instance = nmap3.NmapHostDiscovery()
-        # Perform the portscan on the specified port range by the user, and in the IP specified.
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
-        # We extract the open ports and save them in the instance.
         ports_data = results[self.ip_address]['ports']
         self.get_open_ports(ports_data)
 
+    # Define a method to perform a vulnerability discovery on the open ports
+    # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
+    # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
     def performvulnerabilitydiscovery(self):
         nmap_instance = nmap3.Nmap()
         vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
                                                            args=f"--script vulners -p{','.join(self.open_ports)}")
-
         print(vulners_raw)
         vulners_formatted = self.parse_json(vulners_raw)
         print(vulners_formatted)
-
-
         self.port_context = {
             'port_context_columns': ['Ports', 'Service', 'CPE', 'CVE'],
             'port_context_rows': [
@@ -129,13 +133,11 @@ class NmapScanner(Scanner):
                 }
             ]
         }
-
         print(Fore.LIGHTMAGENTA_EX + f"[ENUM] Vulnerability scan finished. The results of the scan are the following:")
 
+    # Define a method to perform a scan
+    # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
-
         self.openportdiscovery()
-
         self.performvulnerabilitydiscovery()
-
         return self.port_context

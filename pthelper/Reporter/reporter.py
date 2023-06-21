@@ -30,7 +30,6 @@ class DocxJinjaTemplateReporter(Reporter):
     def __init__(self, mode):
         super().__init__(mode)
 
-
     def report(self):
         # If the project directory does not exist, create it
         if not pthelper_config.PROJECTEXISTS:
@@ -93,6 +92,3 @@ class DocxJinjaTemplateReporter(Reporter):
         # Write back the data to the results file
         with open(pthelper_config.RESULTSFILE, 'w') as f:
             json.dump(existing_data, f)
-
-
-
