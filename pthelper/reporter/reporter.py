@@ -11,7 +11,7 @@ from colorama import init, Fore
 # Importing the configuration settings for the application
 from config.pthelper_config import pthelper_config
 
-# Class for the Reporter which accepts different modes
+# Class for the reporter which accepts different modes
 class Reporter:
     def __new__(cls, mode):
         reporter_classes = {
@@ -21,11 +21,11 @@ class Reporter:
         reporter_class = reporter_classes.get(mode, Reporter)
         return super(Reporter, cls).__new__(reporter_class)
 
-    # Initialize the Reporter with a mode
+    # Initialize the reporter with a mode
     def __init__(self, mode):
         self.mode = mode
 
-# Class for a specific type of Reporter that uses the DocxTemplate and Jinja2 for reporting
+# Class for a specific type of reporter that uses the DocxTemplate and Jinja2 for reporting
 class DocxJinjaTemplateReporter(Reporter):
     def __init__(self, mode):
         super().__init__(mode)

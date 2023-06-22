@@ -1,7 +1,7 @@
 from colorama import init, Fore, Style
 from nmap3 import nmap3
 
-# Define a Scanner class that takes in ip_address, ports, and mode of scan
+# Define a scanner class that takes in ip_address, ports, and mode of scan
 class Scanner:
     # Use __new__ to create a new instance of the scanner_class based on the provided mode
     def __new__(cls, ip_address, ports, mode):
@@ -10,11 +10,11 @@ class Scanner:
             "nmap": NmapScanner
             # For future scanner modes, add the user-defined flag and the corresponding child class name here
         }
-        # Get the scanner_class from the dictionary, default is Scanner itself
+        # Get the scanner_class from the dictionary, default is scanner itself
         scanner_class = scanner_classes.get(mode, Scanner)
         return super(Scanner, cls).__new__(scanner_class)
 
-    # Initialize the Scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
+    # Initialize the scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
     def __init__(self, ip_address, ports, mode):
         self.ip_address = ip_address
         self.ports = ports
@@ -24,10 +24,10 @@ class Scanner:
         init() # Initialize the colorama
 
 # Children class that uses Nmap3 library as the scanner type.
-# This is the first Scanner type available.
+# This is the first scanner type available.
 class NmapScanner(Scanner):
 
-    # Call the parent class (Scanner) to receive parameters.
+    # Call the parent class (scanner) to receive parameters.
     def __init__(self, ip_address, ports, mode):
         super().__init__(ip_address, ports, mode)
         print(Fore.MAGENTA + f"Initializing {mode} scanner module on {ip_address}. Be ready!")
@@ -109,6 +109,13 @@ class NmapScanner(Scanner):
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
         ports_data = results[self.ip_address]['ports']
         self.get_open_ports(ports_data)
+
+    def print_info(self, context):
+        from colorama import Fore, Style, init
+
+        init(autoreset=True)  # Inicializar colorama
+        # TODO
+
 
     # Define a method to perform a vulnerability discovery on the open ports
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,

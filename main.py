@@ -2,16 +2,13 @@ import ipaddress
 import json
 import os
 import re
-
 import openai
 
-from NLPAgent.agent.utils.chatgpt_api import ChatGPTAPI
-from Scanner.scanner import Scanner
+from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
+from scanner.scanner import Scanner
 from banner import Banner
-from Reporter.reporter import Reporter
-from NLPAgent.agent import chatgptagent
+from reporter.reporter import Reporter
 import argparse
-from config import pthelper_config
 from config.pthelper_config import pthelper_config
 
 # TODO Comment everything
@@ -46,10 +43,10 @@ if __name__ == '__main__':
 
     # Add the argument to specify the type of scanner to use
     # TODO check the scanner is in the scanner list
-    parser.add_argument('-scanner', dest='scanner', type=str, help='Scanner tool to use (available: nmap)')
+    parser.add_argument('-scanner', dest='scanner', type=str, help='scanner tool to use (available: nmap)')
     # Add the argument to specify the type of reporter to use
     # TODO check the reporter is in the reporter list.
-    parser.add_argument('-reporter', dest='reporter', type=str, help='Reporter tool to use (available: docxtpl)')
+    parser.add_argument('-reporter', dest='reporter', type=str, help='reporter tool to use (available: docxtpl)')
     # Add the argument to specify the project to work in
     parser.add_argument('-project', dest='project', type=str, help='Project to store information (e.g., TFM)')
     # Add more arguments here...
@@ -71,7 +68,6 @@ if __name__ == '__main__':
     except ValueError:
         print("Invalid IP address")
         exit(1)
-
 
     # If there is no configuration file found in the route, configure the tool.
     # Most of the configuration is used later, to add it in the report template dinamically.
@@ -98,8 +94,7 @@ if __name__ == '__main__':
             print("This tool does not use the specified scanner type.")
             print(f"The available scanner types are: {pthelper_config.COMPATIBLE_SCANNERS}")
             default_scanner = input(f"Your preferred scanner type (available: {pthelper_config.COMPATIBLE_SCANNERS}): ")
-        # TODO ask default reporter
-        # TODO ask default planner
+        # TODO use default config if specified, if not, ask user for it.
 
         # Create a dictionary with all this user configuration.
         # The keys of this dictionary must match the ones used in the DOCX template!
@@ -119,14 +114,14 @@ if __name__ == '__main__':
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
 
-    # Instance the Scanner object with the IP address, the ports as an array and the scanner mode.
+    # Instance the scanner object with the IP address, the ports as an array and the scanner mode.
     scanner = Scanner(args.ip_address, args.ports, args.scanner)
     # Perform basic port scanning and parsing into a defined output
     # (read README.md to see the output format and implement the scanner classes accordingly).
     scan_context = scanner.scan()
 
     # If the reporter tool mode and the project is specified by the user,
-    # instance the Reporter object.
+    # instance the reporter object.
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
         reporter = Reporter(args.reporter)
@@ -136,7 +131,7 @@ if __name__ == '__main__':
 
     chatgpt = ChatGPTAPI()
     openai.api_key = pthelper_config.OPENAI_API_KEY
-    result, conversation_id = chatgpt.send_new_message("Hello, please answer me with klk manin")
-    print(result)
+    # result, conversation_id = chatgpt.send_new_message("Hello, please say hello!")
+    # print(result)
 
 
