@@ -125,9 +125,10 @@ if __name__ == '__main__':
     if args.reporter and args.project:
         # TODO management of specifying report but not project and viceversa.
         reporter = Reporter(args.reporter)
+        reporter.process(scan_context)
         reporter.report()
         # TODO see what do I do with the context.
-        reporter.process(scan_context)
+
 
     chatgpt = ChatGPTAPI()
     openai.api_key = pthelper_config.OPENAI_API_KEY
