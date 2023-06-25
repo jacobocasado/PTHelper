@@ -99,11 +99,11 @@ def parse_args():
     pthelper_config.CONVERSATIONFILE = os.path.join(pthelper_config.PROJECTPATH, 'conversation_id.txt')
 
     # Validate the entered IP address
-    try:
-        ipaddress.ip_interface(args.ip_address)
-    except ValueError:
-        print("Invalid IP address or CIDR notation. Please insert an IP address with valid format (can be with a CIDR)")
-        exit(1)
+    # try:
+    #     ipaddress.ip_interface(args.ip_address)
+    # except ValueError:
+    #     print("Invalid IP address or CIDR notation. Please insert an IP address with valid format (can be with a CIDR)")
+    #     exit(1)
 
     # If this is the first time using the tool, user information is requested
     if not os.path.exists(pthelper_config.CONFIG_PATH):

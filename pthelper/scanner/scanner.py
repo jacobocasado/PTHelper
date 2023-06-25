@@ -1,4 +1,6 @@
+import ipaddress
 import json
+import re
 
 from colorama import init, Fore, Style
 from nmap3 import nmap3
@@ -21,8 +23,9 @@ class Scanner:
         self.ip_address = ip_address
         self.ports = ports
         self.mode = mode
-        self.open_ports = []
+        self.open_ports = None
         self.port_contexts = []
+        self.result = {}
         init() # Initialize the colorama
 
 # Children class that uses Nmap3 library as the scanner type.
@@ -35,12 +38,11 @@ class NmapScanner(Scanner):
         print(f"[SCAN] Initializing {mode} scanner module on {ip_address}. Be ready!")
 
     def transform_json(self, input_json):
-        result = []
         for ip, data in input_json.items():
             if ip in ['runtime', 'stats', 'task_results']:
                 continue
 
-            ip_dict = {"IP": ip, "OS": data.get('osmatch', {})}
+            ip_dict = {"OS": data.get('osmatch', {})}
 
             for port_info in data.get('ports', []):
                 portid = port_info.get('portid', '')
@@ -62,9 +64,7 @@ class NmapScanner(Scanner):
 
                 ip_dict.update(port_dict)
 
-            result.append(ip_dict)
-
-        return result
+            self.result[ip] = ip_dict
 
     # Define a method to extract open ports from JSON data returned by nmap3
     # This method looks through the data for each port, and if the state of the port is 'open',
@@ -83,19 +83,41 @@ class NmapScanner(Scanner):
         print(f"[SCAN] Starting port discovery on ", self.ip_address)
         nmap_instance = nmap3.NmapHostDiscovery()
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
-        ports_data = results[self.ip_address]['ports']
-        self.get_open_ports(ports_data)
+        self.ip_open_ports = {}
 
-    def print_results(self, transformed_json):
+        # Iterate over all IP addresses in the results
+        for ip, data in results.items():
+            # Skip entries that are not IPs (e.g., 'runtime', 'stats', etc.)
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                continue
 
-        for ip_dict in transformed_json:
-            print(f"{Fore.LIGHTGREEN_EX}[INFO] IP: {ip_dict['IP']} IS UP.")
-            print(f"[INFO] {ip_dict['OS'] if ip_dict['OS'] else 'OS could not be detected'}.")
+            # Extract port data
+            ports_data = data['ports']
+            open_ports = []
+
+            # Iterate over all ports for the current IP
+            for port_data in ports_data:
+                # Check if port is open
+                if port_data['state'] == 'open':
+                    open_ports.append(port_data['portid'])
+
+            # Add open ports for current IP to dictionary
+            self.ip_open_ports[ip] = open_ports
+
+        return self.ip_open_ports
+
+    def print_results(self):
+        print(self.result)
+
+        for ip, ip_dict in self.result.items():
+            print(f"{Fore.LIGHTGREEN_EX}[INFO] IP: {ip} IS UP.")
+            print(f"[INFO] {ip_dict.get('OS', 'OS could not be detected')}.")
             print(Style.RESET_ALL)
 
-            for key, value in ip_dict.items():
-                if key not in ['IP', 'OS']:
-                    port = key
+            for port, value in ip_dict.items():
+                if port != 'OS':
                     service = value.get('service', '')
                     version = value.get('version', '')
 
@@ -108,29 +130,26 @@ class NmapScanner(Scanner):
 
             print("\n")
 
-    def create_port_contexts(self, transformed_data):
+    def create_port_contexts(self):
         self.port_contexts = {
             'port_context_columns': ['Ports', 'Service', 'Version'],
             'port_context_rows': []
         }
 
-        for data in transformed_data:
-            ip = data['IP']
-            os = data['OS']
-            del data['IP']
-            del data['OS']
-
+        for ip, data in self.result.items():
+            os = data.get('OS', {})
             ports = []
             services = []
-            cpe = []
+            versions = []
             for port, info in data.items():
-                ports.append(port)
-                services.append(info.get('service', ''))
-                cpe.append(info.get('version', ''))
+                if port != 'OS':
+                    ports.append(port)
+                    services.append(info.get('service', ''))
+                    versions.append(info.get('version', ''))
 
             port_context_rows = {
                 'label': ip,
-                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(cpe)]
+                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions)]
             }
 
             self.port_contexts['port_context_rows'].append(port_context_rows)
@@ -142,13 +161,25 @@ class NmapScanner(Scanner):
     # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
     def performvulnerabilitydiscovery(self):
 
-        print(f"Performing vulnerability discovery on", self.ip_address)
-        nmap_instance = nmap3.Nmap()
-        vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
-                                                           args=f"--script vulners -p{','.join(self.open_ports)}")
-        self.print_results(self.transform_json(vulners_raw))
+        # Generate a set of all unique open ports across all IPs
+        all_open_ports = {port for ports in self.ip_open_ports.values() for port in ports}
+        # Join all unique open ports with commas
+        ports_str = ','.join(all_open_ports)
 
-        return(self.create_port_contexts(self.transform_json(vulners_raw)))
+        nmap_instance = nmap3.Nmap()
+
+        # Iterate over all IP addresses
+        for ip in self.ip_open_ports.keys():
+            print(f"Performing vulnerability discovery on", ip)
+            vulners_raw = nmap_instance.nmap_version_detection(
+                ip,
+                args=f"--script vulners -p{ports_str}"
+            )
+            self.transform_json(vulners_raw)
+        self.print_results()
+
+        # If create_port_contexts function needs all data at once, return here
+        return self.create_port_contexts()
 
     # Define a method to perform a scan
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
