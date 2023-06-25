@@ -29,11 +29,6 @@ class Reporter:
 class DocxJinjaTemplateReporter(Reporter):
     def __init__(self, mode):
         super().__init__(mode)
-
-    def process(self, port_contents):
-        with open(pthelper_config.RESULTSFILE, 'w') as f:
-            json.dump(port_contents, f, indent=4)
-    def report(self):
         # If the project directory does not exist, create it
         if not pthelper_config.PROJECTEXISTS:
             os.makedirs(pthelper_config.PROJECTPATH, exist_ok=True)
@@ -48,6 +43,11 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(pthelper_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f)
 
+    def process(self, port_contents):
+        with open(pthelper_config.RESULTSFILE, 'w') as f:
+            json.dump(port_contents, f, indent=4)
+
+    def report(self):
         # Load a Word template using docxtpl
         tpl = DocxTemplate('templates/template.docx')
         # Create a Jinja2 environment with autoescape turned on for security
@@ -57,19 +57,22 @@ class DocxJinjaTemplateReporter(Reporter):
             tpl.replace_media(pthelper_config.BASE_CORP_LOGO, pthelper_config.DESIRED_CORP_LOGO)
 
         # Load configuration files into context for rendering the Jinja template
-        config_file = open(pthelper_config.CONFIG_PATH)
-        context = json.load(config_file)
+        with open(pthelper_config.CONFIG_PATH) as config_file:
+            context = json.load(config_file)
 
-        project_config_file = open(pthelper_config.CONFIGFILE)
-        context_project = json.load(project_config_file)
+        with open(pthelper_config.CONFIGFILE) as project_config_file:
+            context_project = json.load(project_config_file)
+            # Merge the two dictionaries
+            context.update(context_project)
 
-        project_config_file = open(pthelper_config.RESULTSFILE)
-        context_results = json.load(project_config_file)
-        tpl.render(context_results)
+        with open(pthelper_config.RESULTSFILE) as project_config_file:
+            context_results = json.load(project_config_file)
+            # Merge the results dictionary with the previous merged dictionaries
+            context.update(context_results)
 
         # Render the template with the context data
-        tpl.render(context)
-        tpl.render(context_project)
+        tpl.render(context, jinja_env)
 
         # Save the rendered document
-        tpl.save(os.path.join(pthelper_config.PROJECTPATH, 'output.docx'))
+        tpl.save('projects/tfm/output.docx')
+

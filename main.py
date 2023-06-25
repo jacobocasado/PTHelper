@@ -3,41 +3,39 @@ import json
 import os
 import re
 import openai
+import argparse
 
 from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
 from scanner.scanner import Scanner
-from banner import Banner
+from banner.banner import Banner
 from reporter.reporter import Reporter
-import argparse
 from config.pthelper_config import pthelper_config
 
 # TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
 # TODO gettext python so the output and the report is language-modular.
 
-if __name__ == '__main__':
-    # Call the banner function to show the banner
-    Banner.fade_text()
+def check_ports(value):
+    # Comprueba si el valor es un rango de puertos
+    if re.match(r'^\d+-\d+$', value):
+        ports = value.split('-')
+        start, end = int(ports[0]), int(ports[1])
+        if start > end:
+            raise argparse.ArgumentTypeError(f"El rango de puertos {value} no es válido")
+    # Comprueba si el valor es una lista de puertos separados por comas
+    elif re.match(r'^\d+(,\d+)*$', value):
+        ports = [int(port) for port in value.split(',')]
+    else:
+        raise argparse.ArgumentTypeError(f"El formato de puertos {value} no es válido")
+    return value
 
+def parse_args():
     # Instance the argument parser
     parser = argparse.ArgumentParser()
     # Add the argument to process the IP address
     parser.add_argument('-ip', dest='ip_address', type=str, help='IP address to scan')
 
     # Add the argument to process the port range
-    def check_ports(value):
-        # Comprueba si el valor es un rango de puertos
-        if re.match(r'^\d+-\d+$', value):
-            ports = value.split('-')
-            start, end = int(ports[0]), int(ports[1])
-            if start > end:
-                raise argparse.ArgumentTypeError(f"El rango de puertos {value} no es válido")
-        # Comprueba si el valor es una lista de puertos separados por comas
-        elif re.match(r'^\d+(,\d+)*$', value):
-            ports = [int(port) for port in value.split(',')]
-        else:
-            raise argparse.ArgumentTypeError(f"El formato de puertos {value} no es válido")
-        return value
 
     parser.add_argument('-p', dest='ports', type=check_ports, help='Ports to scan')
 
@@ -110,6 +108,15 @@ if __name__ == '__main__':
         with open(pthelper_config.CONFIG_PATH, 'w') as f:
             json.dump(config, f)
 
+    return args
+
+if __name__ == '__main__':
+
+    # Call the banner function to show the banner
+    Banner.display()
+
+    args = parse_args()
+
     # TODO: class interface with colors and stuff, or, at least, comment it.
     # TODO: perform scan methods, and add them to the diagram.
     # TODO: integration with the template scan. make the template also modular!
@@ -128,7 +135,6 @@ if __name__ == '__main__':
         reporter.process(scan_context)
         reporter.report()
         # TODO see what do I do with the context.
-
 
     chatgpt = ChatGPTAPI()
     openai.api_key = pthelper_config.OPENAI_API_KEY

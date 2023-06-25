@@ -34,65 +34,6 @@ class NmapScanner(Scanner):
         super().__init__(ip_address, ports, mode)
         print(Fore.MAGENTA + f"Initializing {mode} scanner module on {ip_address}. Be ready!")
 
-    def parse_json(self, json_data):
-        result = {}
-        for ip, data in json_data.items():
-            if isinstance(data, dict):
-                result[ip] = {}
-                cpe = []
-                ports = []
-                protocols = []
-                services = []
-                products = []
-                versions = []
-                cves = []
-
-                for port in data.get('ports', []):
-                    port_cve = []
-                    ports.append(port.get('portid'))
-                    protocols.append(port.get('protocol'))
-                    service = port.get('service', {})
-                    service_name = service.get('name')
-                    scripts = port.get('scripts')
-                    if service_name:
-                        services.append(service_name)
-                    product = service.get('product')
-                    if product:
-                        products.append(product)
-                    version = service.get('version')
-                    if version:
-                        versions.append(version)
-                    cpe.extend([c['cpe'] for c in port.get('cpe', [])])
-                    # Añadir CVEs
-                    if scripts:
-                        for script in scripts:
-                            if 'data' in script:
-                                for cpe_info, cpe_data in script['data'].items():
-                                    if 'children' in cpe_data:
-                                        for child in cpe_data['children']:
-                                                port_cve.append({'id': child['id'], 'cvss': child['cvss'], 'exploitable': child['is_exploit'], })
-                    cves.append(port_cve)
-
-                    # TODO add this list into CVE and check for duplicates.
-                    #keyword = product + ' ' + version
-                    #print(keyword)
-                    #searchresult = nvdlib.searchCVE(keywordSearch=keyword, keywordExactMatch=True)
-
-                    # Imprimir los IDs de los CVEs encontrados
-                    #for result in searchresult:
-                     #   print(result)
-
-                result[ip]['cpe'] = list(set(cpe))
-                result[ip]['os'] = data.get('osmatch', {}).get('name')
-                result[ip]['ports'] = ports
-                result[ip]['protocols'] = list(set(protocols))
-                result[ip]['services'] = list(set(services))
-                result[ip]['products'] = list(set(products))
-                result[ip]['versions'] = list(set(versions))
-                result[ip]['cves'] = cves
-
-        return result
-
     def transform_json(self, input_json):
         result = []
         for ip, data in input_json.items():
@@ -165,7 +106,10 @@ class NmapScanner(Scanner):
             print("\n")
 
     def create_port_contexts(self, transformed_data):
-        self.port_contexts = []
+        self.port_contexts = {
+            'port_context_columns': ['Ports', 'Service', 'Version'],
+            'port_context_rows': []
+        }
 
         for data in transformed_data:
             ip = data['IP']
@@ -181,17 +125,12 @@ class NmapScanner(Scanner):
                 services.append(info.get('service', ''))
                 cpe.append(info.get('version', ''))
 
-            port_context = {
-                'port_context_columns': ['Ports', 'Service', 'CPE'],
-                'port_context_rows': [
-                    {
-                        'label': ip,
-                        'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(cpe)]
-                    }
-                ]
+            port_context_rows = {
+                'label': ip,
+                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(cpe)]
             }
 
-            self.port_contexts.append(port_context)
+            self.port_contexts['port_context_rows'].append(port_context_rows)
 
         return self.port_contexts
 
@@ -205,7 +144,6 @@ class NmapScanner(Scanner):
         self.print_results(self.transform_json(vulners_raw))
 
         return(self.create_port_contexts(self.transform_json(vulners_raw)))
-
 
     # Define a method to perform a scan
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
