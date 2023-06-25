@@ -32,7 +32,7 @@ class NmapScanner(Scanner):
     # Call the parent class (scanner) to receive parameters.
     def __init__(self, ip_address, ports, mode):
         super().__init__(ip_address, ports, mode)
-        print(Fore.MAGENTA + f"Initializing {mode} scanner module on {ip_address}. Be ready!")
+        print(f"[SCAN] Initializing {mode} scanner module on {ip_address}. Be ready!")
 
     def transform_json(self, input_json):
         result = []
@@ -72,23 +72,26 @@ class NmapScanner(Scanner):
     def get_open_ports(self, json_data):
         for port_data in json_data:
             if port_data.get('state') == 'open':
-                print(Fore.LIGHTMAGENTA_EX + f"[ENUM] Port {port_data.get('portid')} is OPEN.")
-                print(Fore.MAGENTA + f"Adding the port to the advanced port scan phase.")
-                print(Style.RESET_ALL)
+                print(f"[SCAN] Port {port_data.get('portid')} is OPEN.")
+                print(f"[SCAN] Adding the port to the advanced port scan phase.")
                 self.open_ports.append(port_data.get('portid'))
 
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
     # It then extracts the open ports from the scan results using the get_open_ports method defined above
     def openportdiscovery(self):
+        print(f"[SCAN] Starting port discovery on ", self.ip_address)
         nmap_instance = nmap3.NmapHostDiscovery()
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
         ports_data = results[self.ip_address]['ports']
         self.get_open_ports(ports_data)
 
     def print_results(self, transformed_json):
+
         for ip_dict in transformed_json:
-            print(f"{Fore.WHITE}IP: {ip_dict['IP']}. El sistema operativo parece ser {ip_dict['OS']}.{Style.RESET_ALL}")
+            print(f"{Fore.LIGHTGREEN_EX}[INFO] IP: {ip_dict['IP']} IS UP.")
+            print(f"[INFO] {ip_dict['OS'] if ip_dict['OS'] else 'OS could not be detected'}.")
+            print(Style.RESET_ALL)
 
             for key, value in ip_dict.items():
                 if key not in ['IP', 'OS']:
@@ -138,6 +141,8 @@ class NmapScanner(Scanner):
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
     # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
     def performvulnerabilitydiscovery(self):
+
+        print(f"Performing vulnerability discovery on", self.ip_address)
         nmap_instance = nmap3.Nmap()
         vulners_raw = nmap_instance.nmap_version_detection(self.ip_address,
                                                            args=f"--script vulners -p{','.join(self.open_ports)}")

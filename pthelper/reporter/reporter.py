@@ -43,11 +43,12 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(pthelper_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f)
 
-    def process(self, port_contents):
+    def report(self, port_contents):
+
+        # Firstly, dump the contents of the scanner in the results file of the project.
+        # For further manipulations and usage of the information.
         with open(pthelper_config.RESULTSFILE, 'w') as f:
             json.dump(port_contents, f, indent=4)
-
-    def report(self):
         # Load a Word template using docxtpl
         tpl = DocxTemplate('templates/template.docx')
         # Create a Jinja2 environment with autoescape turned on for security
