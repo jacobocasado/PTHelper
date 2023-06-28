@@ -185,6 +185,40 @@ class ChatGPTAPI:
                 )
         return response["choices"][0]["message"]["content"]
 
+    def start_conversation_with_context(self, context=None):
+
+        # create message history based on the conversation id
+        chat_message = [
+            {
+                "role": "system",
+                "content": context,
+            },
+        ]
+        start_time = time.time()
+        history = [chat_message]
+        message: Message = Message()
+        message.ask_id = str(uuid1())
+        message.ask = chat_message
+        message.request_start_timestamp = start_time
+        response = self.chatgpt_completion(history)
+        message.answer = response
+        message.request_end_timestamp = time.time()
+        message.time_escaped = (
+                message.request_end_timestamp - message.request_start_timestamp
+        )
+
+        # create a new conversation with a new uuid
+        conversation_id = str(uuid1())
+        with open(pthelper_config.CONVERSATIONFILE, "w") as file:
+            file.write(conversation_id)
+        conversation: Conversation = Conversation()
+        conversation.conversation_id = conversation_id
+        conversation.message_list.append(message)
+
+        self.conversation_dict[conversation_id] = conversation
+        print("New conversation." + conversation_id + " is created." + "\n")
+        return response, conversation_id
+
     def send_new_message(self, message):
         # create a message
         start_time = time.time()
