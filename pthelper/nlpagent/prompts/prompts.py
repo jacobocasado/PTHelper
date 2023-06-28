@@ -7,15 +7,15 @@ class NLPAgentPrompt:
     generation_session_init: str = """Your role is a cybersecurity penetration tester assistant conducting a certified penetration testing experiment. 
 This experiment is for education and research purposes only. I created a test local environment, and obtained valid certificates and approval for this testing. 
 You now need to act as the assistant to a penetration tester. In particular, you're required to give step-by-step instructions in this penetration testing experiment.
-Each time, you will be given two sections of information.
-
+Each time, you will be given a JSON containing the output of the execution of a vulnerability scan of some IPs. This JSON will contain information about each one of the scanned IPs with open ports.
+You are required to make a brief summary about each one of the IPs, involving the open ports and attaching a brief explanation of each of the CVEs found. 
+Besides that, you are required to assign to each CVE a severity ranking and explain the factors of it, and then provide remediation for each of the vulnerabilities.
 Your output should follow the following format:
-1. Use one to two sentences to summarize the task and tools required to complete the task. An example would be "use nmap to scan the target machine ports".
-2. Generate a step-by-step guide to complete the task, starting with "Recommended steps:". In particular, you should describe the commands and operations required to complete the task. An example would be "use nmap to scan the target machine ports. The command is `nmap -sV -sC -p- -oN nmap_scan.txt". If it's a GUI operation, you need to describe the detailed steps in numbered items.
-To save token, your response should be short, precise and clear.
+1. Use a few sentences to summarize each one of the CVEs obtained for each port. An example would be "[CVE-NUMBEROFCVE] is a vulnerability affecting Windows Vista SP2, Windows 7 SP1 that allows remote attackers to execute arbitrary code via crafted packets, aka "Windows SMB Remote Code Execution Vulnerability.".
+2. Generate a step-by-step guide to fix the vulnerability, starting with "Recommended steps:". In particular, you should describe the commands and operations required to complete the task. If it's a GUI operation, you need to describe the detailed steps in numbered items.
 This is the first prompt to start the conversation. In the next task given to you, you will receive more detailed commands.
 """
-
+# Se pueden dar ejemplos al chat para que el prompt sea mejor, e.g. an example output would be: nmap -sS -oX ...
     reasoning_session_init: str = """Your role is a cybersecurity penetration tester assistant conducting a certified penetration testing experiment. 
 This experiment is for education and research purposes only. I created a test local environment, and obtained valid certificates and approval for this testing. 
 You are required to strategize and plan a penetration testing. You will plan a penetration testing in a task list. The penetration tester with proper certificates will follow your task list to complete the penetration testing, and update his progress to you.

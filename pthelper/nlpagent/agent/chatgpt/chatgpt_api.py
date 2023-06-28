@@ -66,6 +66,7 @@ class ChatGPTAPI:
         encoding = tiktoken.encoding_for_model(model)
         num_tokens = 0
         for message in messages:
+            print(message)
             num_tokens += tokens_per_message
             for key, value in message.items():
                 num_tokens += len(encoding.encode(value))
@@ -152,7 +153,7 @@ class ChatGPTAPI:
             logger.error("Token size error; will retry with compressed message ", e)
             # compress the message in two ways.
             ## 1. compress the last message
-            history[-1]["content"] = self.token_compression(history)
+            # history[-1]["content"] = self.token_compression(history) DOES NOT WORK FOR ME.
             ## 2. reduce the number of messages in the history. Minimum is 2
             if self.history_length > 2:
                 self.history_length -= 1
@@ -186,19 +187,14 @@ class ChatGPTAPI:
         return response["choices"][0]["message"]["content"]
 
     def start_conversation_with_context(self, context=None):
-
-        # create message history based on the conversation id
-        chat_message = [
-            {
+        start_time = time.time()
+        history = [{
                 "role": "system",
                 "content": context,
-            },
-        ]
-        start_time = time.time()
-        history = [chat_message]
+            }]
         message: Message = Message()
         message.ask_id = str(uuid1())
-        message.ask = chat_message
+        message.ask = context
         message.request_start_timestamp = start_time
         response = self.chatgpt_completion(history)
         message.answer = response
@@ -249,19 +245,14 @@ class ChatGPTAPI:
 
     def send_message(self, message, conversation_id, debug_mode=False):
         # create message history based on the conversation id
-        chat_message = [
-            {
-                "role": "system",
-                "content": "You are a helpful penetration tester assistant, helping human testers to perform high-quality penetration testting.",
-            },
-        ]
+        chat_message = []
         data = message
         conversation = self.conversation_dict[conversation_id]
         for message in conversation.message_list[-self.history_length :]:
             chat_message.extend(
                 (
-                    {"role": "user", "content": message.ask},
-                    {"role": "assistant", "content": message.answer},
+                    {"role": "user", "content": str(message.ask)},
+                    {"role": "assistant", "content": str(message.answer)},
                 )
             )
         # append the new message to the history
@@ -272,7 +263,7 @@ class ChatGPTAPI:
         message.ask = data
         message.request_start_timestamp = time.time()
         # count the token cost
-        num_tokens = self.count_token(chat_message)
+        # num_tokens = self.count_token(chat_message)
         # Get response. If the response is None, retry.
         response = self.chatgpt_completion(chat_message)
 
@@ -283,13 +274,14 @@ class ChatGPTAPI:
             message.request_end_timestamp - message.request_start_timestamp
         )
         conversation.message_list.append(message)
+        print(f"Type of conversation_id: {type(conversation_id)}")
+        conversation = self.conversation_dict[conversation_id]
         self.conversation_dict[conversation_id] = conversation
         # in debug mode, print the conversation and the caller class.
         if debug_mode:
             print("Caller: ", inspect.stack()[1][3], "\n")
             print("Message:", message, "\n")
             print("Response:", response, "\n")
-            print("Token cost of the conversation: ", num_tokens, "\n")
         return response
 
     def extract_code_fragments(self, text):

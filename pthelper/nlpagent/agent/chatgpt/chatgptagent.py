@@ -14,12 +14,15 @@ from typing import Dict, List
 
 from config.pthelper_config import pthelper_config
 from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
+from nlpagent.prompts.prompts import NLPAgentPrompt
+
+
 class NLPAgent:
 
     def __new__(cls, mode):
         # A dictionary to map different scanning modes to respective classes
         nlpagent_classes = {
-            "chatgpt": ChatGPTAPIAgent 
+            "chatgpt": ChatGPTAPIAgent
             # For future nlpagent modes, add the user-defined flag and the corresponding child class name here
         }
         # Get the scanner_class from the dictionary, default is scanner itself
@@ -47,7 +50,8 @@ class ChatGPTAPIAgent(NLPAgent):
         openai.api_key = pthelper_config.OPENAI_API_KEY
 
     def cve_summary(self,port_context):
-        self.api.start_conversation_with_context()
-
+        response, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.generation_session_init)
+        response = self.api.send_message(str(port_context), conversation_id)
+        print(response)
     def process(self, context):
         self.cve_summary(context)
