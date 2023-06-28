@@ -2,7 +2,7 @@ import ipaddress
 import json
 import re
 
-from colorama import init, Fore, Style
+from colorama import Fore, Style
 from nmap3 import nmap3
 
 # Define a scanner class that takes in ip_address, ports, and mode of scan
@@ -26,7 +26,6 @@ class Scanner:
         self.open_ports = None
         self.port_contexts = []
         self.result = {}
-        init() # Initialize the colorama
 
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
