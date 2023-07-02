@@ -4,6 +4,14 @@ import re
 
 from colorama import Fore, Style
 from nmap3 import nmap3
+from functools import wraps
+
+def add_scanner_prefix(func):
+    @wraps(func)
+    def wrapper(self, *args, **kwargs):
+        print (f"{Fore.MAGENTA}[SCANNER]{Style.RESET_ALL}", end=" ")
+        return func(self, *args, **kwargs)
+    return wrapper
 
 # Define a scanner class that takes in ip_address, ports, and mode of scan
 class Scanner:
@@ -32,9 +40,10 @@ class Scanner:
 class NmapScanner(Scanner):
 
     # Call the parent class (scanner) to receive parameters.
+    @add_scanner_prefix
     def __init__(self, ip_address, ports, mode):
         super().__init__(ip_address, ports, mode)
-        print(f"[SCAN] Initializing {mode} scanner module on {ip_address}. Be ready!")
+        print(f"Initializing {mode} scanner module on {ip_address}.")
 
     def transform_json(self, input_json):
         for ip, data in input_json.items():
@@ -59,27 +68,19 @@ class NmapScanner(Scanner):
                                 cve_id = vuln.get('id', '')
 
                                 if 'CVE' in cve_id:
-                                    port_dict[portid][cve_id] = {"CVSS": cvss, "exploitable": is_exploitable}
+                                    port_dict[portid][cve_id] = {"CVSS": cvss}
+                                        # , "exploitable": is_exploitable} # Does not add extra info.
 
                 ip_dict.update(port_dict)
 
             self.result[ip] = ip_dict
 
-    # Define a method to extract open ports from JSON data returned by nmap3
-    # This method looks through the data for each port, and if the state of the port is 'open',
-    # it prints a message and adds the port to the list of open ports for this instance
-    def get_open_ports(self, json_data):
-        for port_data in json_data:
-            if port_data.get('state') == 'open':
-                print(f"[SCAN] Port {port_data.get('portid')} is OPEN.")
-                print(f"[SCAN] Adding the port to the advanced port scan phase.")
-                self.open_ports.append(port_data.get('portid'))
-
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
     # It then extracts the open ports from the scan results using the get_open_ports method defined above
+    @add_scanner_prefix
     def openportdiscovery(self):
-        print(f"[SCAN] Starting port discovery on ", self.ip_address)
+        print(f"Starting port discovery on", self.ip_address, end=". \n")
         nmap_instance = nmap3.NmapHostDiscovery()
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
         self.ip_open_ports = {}
@@ -102,17 +103,27 @@ class NmapScanner(Scanner):
                 if port_data['state'] == 'open':
                     open_ports.append(port_data['portid'])
 
-            # Add open ports for current IP to dictionary
-            self.ip_open_ports[ip] = open_ports
+            # Add open ports for current IP to dictionary only if there is at least one open port
+            if open_ports:
+                self.ip_open_ports[ip] = open_ports
+
+        # If no open ports were found on any IP, terminate the program
+        if not self.ip_open_ports:
+            print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
+            exit(0)
 
         return self.ip_open_ports
 
+    @add_scanner_prefix
     def print_results(self):
-        print(self.result)
 
         for ip, ip_dict in self.result.items():
-            print(f"{Fore.LIGHTGREEN_EX}[INFO] IP: {ip} IS UP.")
-            print(f"[INFO] {ip_dict.get('OS', 'OS could not be detected')}.")
+            print(f"{ip} UP", end=". ")
+            os_info = ip_dict.get('OS', None)
+            if os_info:
+                print(f"{os_info}")
+            else:
+                print(f"{Fore.RED}OS could not be detected.{Fore.RESET} There is not enough information to fingerprint the host.")
             print(Style.RESET_ALL)
 
             for port, value in ip_dict.items():
@@ -131,7 +142,7 @@ class NmapScanner(Scanner):
 
     def create_port_contexts(self):
         self.port_contexts = {
-            'port_context_columns': ['Ports', 'Service', 'Version'],
+            'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
             'port_context_rows': []
         }
 
@@ -140,15 +151,20 @@ class NmapScanner(Scanner):
             ports = []
             services = []
             versions = []
+            cves = []
             for port, info in data.items():
                 if port != 'OS':
                     ports.append(port)
                     services.append(info.get('service', ''))
                     versions.append(info.get('version', ''))
 
+                    # Extract CVEs
+                    cve_info = [key for key in info.keys() if key.startswith('CVE-')]
+                    cves.append(", ".join(cve_info))
+
             port_context_rows = {
                 'label': ip,
-                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions)]
+                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions), '\n'.join(cves)]
             }
 
             self.port_contexts['port_context_rows'].append(port_context_rows)
@@ -158,6 +174,7 @@ class NmapScanner(Scanner):
     # Define a method to perform a vulnerability discovery on the open ports
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
     # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
+    @add_scanner_prefix
     def performvulnerabilitydiscovery(self):
 
         # Generate a set of all unique open ports across all IPs
@@ -185,4 +202,4 @@ class NmapScanner(Scanner):
     def scan(self):
         self.openportdiscovery()
         self.performvulnerabilitydiscovery()
-        return self.port_contexts
+        return self.port_contexts, self.result

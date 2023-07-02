@@ -111,7 +111,7 @@ class ChatGPTAPI:
         return raw_message
 
     def chatgpt_completion(
-        self, history: List, model="gpt-3.5-turbo", temperature=0.25
+        self, history: List, model="gpt-3.5-turbo-16k", temperature=0.05
     ) -> str:
         if pthelper_config.NLPAGENTMODEL == "gpt-4":
             model = "gpt-4"
@@ -244,6 +244,7 @@ class ChatGPTAPI:
         return response, conversation_id
 
     def send_message(self, message, conversation_id, debug_mode=False):
+        print(message)
         # create message history based on the conversation id
         chat_message = []
         data = message
@@ -251,8 +252,8 @@ class ChatGPTAPI:
         for message in conversation.message_list[-self.history_length :]:
             chat_message.extend(
                 (
-                    {"role": "user", "content": str(message.ask)},
-                    {"role": "assistant", "content": str(message.answer)},
+                    {"role": "user", "content": message.ask},
+                    {"role": "assistant", "content": message.answer},
                 )
             )
         # append the new message to the history
