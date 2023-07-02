@@ -1,11 +1,8 @@
-import ipaddress
 import json
 import os
 import re
-import openai
 import argparse
 
-from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
 from nlpagent.agent.chatgpt.chatgptagent import NLPAgent
 from scanner.scanner import Scanner
 from banner.banner import Banner
@@ -132,8 +129,8 @@ if __name__ == '__main__':
         reporter = Reporter(args.reporter)
         reporter.report(scan_context)
 
-    # agent = NLPAgent("chatgpt")
-    # agent.process(scan_results)
+    agent = NLPAgent("chatgpt")
+    agent.process(scan_results)
 
 
 
