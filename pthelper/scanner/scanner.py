@@ -1,10 +1,13 @@
 import ipaddress
-import json
-import re
+import nvdlib
 
 from colorama import Fore, Style
 from nmap3 import nmap3
 from functools import wraps
+from tqdm import tqdm
+
+from config.pthelper_config import pthelper_config
+
 
 def add_scanner_prefix(func):
     @wraps(func)
@@ -33,7 +36,24 @@ class Scanner:
         self.mode = mode
         self.open_ports = None
         self.port_contexts = []
-        self.result = {}
+        self.parsed_scan_result = {}
+        self.cveinfo = {}
+
+    def buscarCVEs(self):
+
+        input_string = input('\n#Introduzca CVEs separados por comas >> ')
+        CVEs_names = input_string.split(',')
+        print('\nBuscando CVEs.............')
+        for CVE in tqdm(CVEs_names):
+            # try:
+            r = nvdlib.searchCVE(cveId=CVE, key=pthelper_config.NVD_API_KEY)[0]
+            self.cveinfo[r.id] = r
+            # except Exception as e:
+            #    print(e)
+            #    print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs')
+            #    CVEs[CVE] = 'Error API'
+
+        return self.cveinfo
 
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
@@ -45,12 +65,16 @@ class NmapScanner(Scanner):
         super().__init__(ip_address, ports, mode)
         print(f"Initializing {mode} scanner module on {ip_address}.")
 
-    def transform_json(self, input_json):
+    def parse_scan_results(self, input_json):
         for ip, data in input_json.items():
             if ip in ['runtime', 'stats', 'task_results']:
                 continue
 
-            ip_dict = {"OS": data.get('osmatch', {})}
+            osmatch_data = data.get('osmatch', None)
+            if osmatch_data:
+                ip_dict = {"OS": osmatch_data}
+            else:
+                ip_dict = {"OS": "Unknown"}
 
             for port_info in data.get('ports', []):
                 portid = port_info.get('portid', '')
@@ -73,7 +97,7 @@ class NmapScanner(Scanner):
 
                 ip_dict.update(port_dict)
 
-            self.result[ip] = ip_dict
+            self.parsed_scan_result[ip] = ip_dict
 
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
@@ -117,7 +141,7 @@ class NmapScanner(Scanner):
     @add_scanner_prefix
     def print_results(self):
 
-        for ip, ip_dict in self.result.items():
+        for ip, ip_dict in self.parsed_scan_result.items():
             print(f"{ip} UP", end=". ")
             os_info = ip_dict.get('OS', None)
             if os_info:
@@ -140,14 +164,18 @@ class NmapScanner(Scanner):
 
             print("\n")
 
+    def performosdiscovery(self):
+        nmap_instance = nmap3.Nmap()
+        os_results = nmap_instance.nmap_os_detection(self.ip_address)
+        print(os_results)
+
     def create_port_contexts(self):
         self.port_contexts = {
             'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
             'port_context_rows': []
         }
 
-        for ip, data in self.result.items():
-            os = data.get('OS', {})
+        for ip, data in self.parsed_scan_result.items():
             ports = []
             services = []
             versions = []
@@ -191,8 +219,8 @@ class NmapScanner(Scanner):
                 ip,
                 args=f"--script vulners -p{ports_str}"
             )
-            self.transform_json(vulners_raw)
-        self.print_results()
+            self.parse_scan_results(vulners_raw)
+        #self.print_results()
 
         # If create_port_contexts function needs all data at once, return here
         return self.create_port_contexts()
@@ -201,5 +229,8 @@ class NmapScanner(Scanner):
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
         self.openportdiscovery()
+        self.performosdiscovery()
         self.performvulnerabilitydiscovery()
-        return self.port_contexts, self.result
+        # self.buscarCVEs()
+        print(self.parsed_scan_result)
+        return self.port_contexts, self.parsed_scan_result

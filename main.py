@@ -129,8 +129,8 @@ if __name__ == '__main__':
         reporter = Reporter(args.reporter)
         reporter.report(scan_context)
 
-    agent = NLPAgent("chatgpt")
-    agent.process(scan_results)
+    # agent = NLPAgent("chatgpt")
+    # agent.process(scan_results)
 
 
 

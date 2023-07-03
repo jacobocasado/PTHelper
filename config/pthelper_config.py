@@ -11,6 +11,8 @@ class PTHelperConfig:
     BASE_CORP_LOGO = 'resources/corp_logo.png'
     # Specify the configuration file, to save user presets like name, language, email, etc.
 
+    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775"
+
     PROJECTPATH = None
     CONFIGFILE = None
     RESULTSFILE = None
@@ -22,13 +24,13 @@ class PTHelperConfig:
     HISTORY_LENGTH = 20
     ERROR_WAIT_TIME = 5
     NLPAGENTMODEL = "gpt-3.5-turbo"
-    NLPAGENTCONTEXT = "Cada vez que hables, tienes que decir KLK!!!"
     CHATGPT_PROXIES: dict = dataclasses.field(
         default_factory=lambda: {
             "http": "",
             "https": "",
         }
     )
+
 
 
 pthelper_config = PTHelperConfig()

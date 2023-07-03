@@ -41,7 +41,6 @@ class Conversation:
 
 class ChatGPTAPI:
     def __init__(self):
-        openai.api_key = pthelper_config.NLPAGENTCONTEXT
         openai.proxy = pthelper_config.CHATGPT_PROXIES
         self.history_length = pthelper_config.HISTORY_LENGTH # maintain 5 messages in the history. (5 chat memory)
         self.conversation_dict: Dict[str, Conversation] = {}
@@ -212,7 +211,7 @@ class ChatGPTAPI:
         conversation.message_list.append(message)
 
         self.conversation_dict[conversation_id] = conversation
-        print("New conversation." + conversation_id + " is created." + "\n")
+        # print("New conversation." + conversation_id + " is created." + "\n")
         return response, conversation_id
 
     def send_new_message(self, message):
