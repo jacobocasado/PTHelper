@@ -122,12 +122,12 @@ if __name__ == '__main__':
     scanner = Scanner(args.ip_address, args.ports, args.scanner)
 
     # Perform the scan and get the scan context
-    scan_context, scan_results = scanner.scan()
+    scan_results = scanner.scan()
 
     # If a reporting tool and project was specified, create a Reporter object
     if args.reporter and args.project:
-        reporter = Reporter(args.reporter)
-        reporter.report(scan_context)
+        reporter = Reporter(args.reporter, scan_results)
+        reporter.report()
 
     # agent = NLPAgent("chatgpt")
     # agent.process(scan_results)

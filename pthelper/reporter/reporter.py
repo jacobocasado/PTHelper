@@ -13,7 +13,7 @@ from config.pthelper_config import pthelper_config
 
 # Class for the reporter which accepts different modes
 class Reporter:
-    def __new__(cls, mode):
+    def __new__(cls, mode, port_contexts):
         reporter_classes = {
             'docxtpl_jinja': DocxJinjaTemplateReporter
             # Add here future scanner modes with the flag that the user has to introduce and the children class name.
@@ -22,13 +22,45 @@ class Reporter:
         return super(Reporter, cls).__new__(reporter_class)
 
     # Initialize the reporter with a mode
-    def __init__(self, mode):
+    def __init__(self, mode, port_contexts):
         self.mode = mode
+        self.create_port_contexts(port_contexts)
+
+    def create_port_contexts(self, scanner_output):
+        self.port_contexts = {
+            'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
+            'port_context_rows': []
+        }
+
+        for ip, data in scanner_output.items():
+            ports = []
+            services = []
+            versions = []
+            cves = []
+            for port, info in data.items():
+
+                if isinstance(info, dict) and 'service' in info and 'version' in info:
+                    ports.append(port)
+                    services.append(info.get('service', ''))
+                    versions.append(info.get('version', ''))
+
+                    # Extract CVEs
+                    cve_info = [key for key in info.keys() if key.startswith('CVE-')]
+                    cves.append(", ".join(cve_info))
+
+            port_context_rows = {
+                'label': ip,
+                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions), '\n'.join(cves)]
+            }
+
+            self.port_contexts['port_context_rows'].append(port_context_rows)
+
+        return self.port_contexts
 
 # Class for a specific type of reporter that uses the DocxTemplate and Jinja2 for reporting
 class DocxJinjaTemplateReporter(Reporter):
-    def __init__(self, mode):
-        super().__init__(mode)
+    def __init__(self, mode, scan_output):
+        super().__init__(mode, scan_output)
         # If the project directory does not exist, create it
         if not pthelper_config.PROJECTEXISTS:
             os.makedirs(pthelper_config.PROJECTPATH, exist_ok=True)
@@ -43,12 +75,12 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(pthelper_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f)
 
-    def report(self, port_contents):
+    def report(self):
 
         # Firstly, dump the contents of the scanner in the results file of the project.
         # For further manipulations and usage of the information.
         with open(pthelper_config.RESULTSFILE, 'w') as f:
-            json.dump(port_contents, f, indent=4)
+            json.dump(self.port_contexts, f, indent=4)
         # Load a Word template using docxtpl
         tpl = DocxTemplate('templates/template.docx')
         # Create a Jinja2 environment with autoescape turned on for security

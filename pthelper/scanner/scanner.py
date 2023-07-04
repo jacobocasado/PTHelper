@@ -157,37 +157,6 @@ class NmapScanner(Scanner):
             self.os_cpe = "Unknown"
         pass
 
-    def create_port_contexts(self):
-        self.port_contexts = {
-            'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
-            'port_context_rows': []
-        }
-
-        for ip, data in self.parsed_scan_result.items():
-            ports = []
-            services = []
-            versions = []
-            cves = []
-            for port, info in data.items():
-
-                if isinstance(info, dict) and 'service' in info and 'version' in info:
-                    ports.append(port)
-                    services.append(info.get('service', ''))
-                    versions.append(info.get('version', ''))
-
-                    # Extract CVEs
-                    cve_info = [key for key in info.keys() if key.startswith('CVE-')]
-                    cves.append(", ".join(cve_info))
-
-            port_context_rows = {
-                'label': ip,
-                'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions), '\n'.join(cves)]
-            }
-
-            self.port_contexts['port_context_rows'].append(port_context_rows)
-
-        return self.port_contexts
-
     # Define a method to perform a vulnerability discovery on the open ports
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
     # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
@@ -210,9 +179,6 @@ class NmapScanner(Scanner):
             )
             self.parse_scan_results(vulners_raw)
 
-        # If create_port_contexts function needs all data at once, return here
-        return self.create_port_contexts()
-
     # Define a method to perform a scan
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
@@ -220,6 +186,5 @@ class NmapScanner(Scanner):
         self.performosdiscovery()
         self.openportdiscovery()
         self.performvulnerabilitydiscovery()
-        # self.buscarCVEs()
-        print(self.parsed_scan_result)
-        return self.port_contexts, self.parsed_scan_result
+
+        return self.parsed_scan_result
