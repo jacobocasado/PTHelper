@@ -1,4 +1,6 @@
 import ipaddress
+import os
+
 import nvdlib
 
 from colorama import Fore, Style
@@ -7,7 +9,6 @@ from functools import wraps
 from tqdm import tqdm
 
 from config.pthelper_config import pthelper_config
-
 
 def add_scanner_prefix(func):
     @wraps(func)
@@ -32,6 +33,8 @@ class Scanner:
     # Initialize the scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
     def __init__(self, ip_address, ports, mode):
         self.ip_address = ip_address
+        self.os = None
+        self.os_cpe = None
         self.ports = ports
         self.mode = mode
         self.open_ports = None
@@ -165,9 +168,18 @@ class NmapScanner(Scanner):
             print("\n")
 
     def performosdiscovery(self):
-        nmap_instance = nmap3.Nmap()
-        os_results = nmap_instance.nmap_os_detection(self.ip_address)
-        print(os_results)
+        # nmap_os_detection can only be performed with sudo privileges.
+        # This line if code ensures we are root. If not, we just print that the script is not running as root
+        if os.geteuid() == 0:
+            nmap_instance = nmap3.Nmap()
+            os_results = nmap_instance.nmap_os_detection(self.ip_address)
+
+            # Asignamos los valores solicitados a las variables de la clase
+            self.os = os_results[self.ip_address]['osmatch'][0]['name']
+            self.os_cpe = os_results[self.ip_address]['osmatch'][0]['cpe']
+        else:
+            print(f"PTHelper was not called as root. OS detection will not be available using nmap.")
+            pass
 
     def create_port_contexts(self):
         self.port_contexts = {
@@ -228,8 +240,9 @@ class NmapScanner(Scanner):
     # Define a method to perform a scan
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
-        self.openportdiscovery()
+
         self.performosdiscovery()
+        self.openportdiscovery()
         self.performvulnerabilitydiscovery()
         # self.buscarCVEs()
         print(self.parsed_scan_result)

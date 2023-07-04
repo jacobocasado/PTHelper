@@ -5,13 +5,6 @@ import time
 from uuid import uuid1
 
 import openai  # pip install openai
-import requests
-import typer  # pip install "typer[all]"
-from rich import print  # pip install rich
-from rich.table import Table
-from rich.console import Console
-from typing import Dict, List
-
 from config.pthelper_config import pthelper_config
 from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
 from nlpagent.prompts.prompts import NLPAgentPrompt
