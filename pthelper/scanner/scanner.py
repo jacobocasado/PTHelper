@@ -73,11 +73,10 @@ class NmapScanner(Scanner):
             if ip in ['runtime', 'stats', 'task_results']:
                 continue
 
-            osmatch_data = data.get('osmatch', None)
-            if osmatch_data:
-                ip_dict = {"OS": osmatch_data}
-            else:
-                ip_dict = {"OS": "Unknown"}
+            ip_dict = {
+                "OS": self.os,
+                "OS_cpe": self.os_cpe
+            }
 
             for port_info in data.get('ports', []):
                 portid = port_info.get('portid', '')
@@ -142,31 +141,6 @@ class NmapScanner(Scanner):
         return self.ip_open_ports
 
     @add_scanner_prefix
-    def print_results(self):
-
-        for ip, ip_dict in self.parsed_scan_result.items():
-            print(f"{ip} UP", end=". ")
-            os_info = ip_dict.get('OS', None)
-            if os_info:
-                print(f"{os_info}")
-            else:
-                print(f"{Fore.RED}OS could not be detected.{Fore.RESET} There is not enough information to fingerprint the host.")
-            print(Style.RESET_ALL)
-
-            for port, value in ip_dict.items():
-                if port != 'OS':
-                    service = value.get('service', '')
-                    version = value.get('version', '')
-
-                    cves = [k for k in value.keys() if 'CVE' in k]
-                    print(
-                        f"{Fore.GREEN}El puerto {port}{Style.RESET_ALL} se encuentra abierto, con el servicio {Fore.MAGENTA}{service}{Style.RESET_ALL} versión {Fore.MAGENTA}{version}{Style.RESET_ALL}. {Fore.RED}Posee {len(cves)} cves asociadas:{Style.RESET_ALL}")
-
-                    for cve in cves:
-                        print(f"{Fore.RED}- {cve}{Style.RESET_ALL}")
-
-            print("\n")
-
     def performosdiscovery(self):
         # nmap_os_detection can only be performed with sudo privileges.
         # This line if code ensures we are root. If not, we just print that the script is not running as root
@@ -179,7 +153,9 @@ class NmapScanner(Scanner):
             self.os_cpe = os_results[self.ip_address]['osmatch'][0]['cpe']
         else:
             print(f"PTHelper was not called as root. OS detection will not be available using nmap.")
-            pass
+            self.os = "Unknown"
+            self.os_cpe = "Unknown"
+        pass
 
     def create_port_contexts(self):
         self.port_contexts = {
@@ -193,7 +169,8 @@ class NmapScanner(Scanner):
             versions = []
             cves = []
             for port, info in data.items():
-                if port != 'OS':
+
+                if isinstance(info, dict) and 'service' in info and 'version' in info:
                     ports.append(port)
                     services.append(info.get('service', ''))
                     versions.append(info.get('version', ''))
@@ -232,7 +209,6 @@ class NmapScanner(Scanner):
                 args=f"--script vulners -p{ports_str}"
             )
             self.parse_scan_results(vulners_raw)
-        #self.print_results()
 
         # If create_port_contexts function needs all data at once, return here
         return self.create_port_contexts()
