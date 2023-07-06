@@ -90,25 +90,33 @@ class NmapScanner(Scanner):
                         for cve, cve_data in script.get('data', {}).items():
                             for vuln in cve_data.get('children', []):
                                 cvss = vuln.get('cvss', '')
-                                is_exploitable = vuln.get('is_exploit', '')
                                 cve_id = vuln.get('id', '')
 
                                 if 'CVE' in cve_id:
-                                    port_dict[portid][cve_id] = {"CVSS": cvss}
+                                    port_dict[portid][cve_id] = \
+                                    {
+                                                                "cve": cve_id,
+                                                                "CVSS": cvss
+                                    }
 
                                     try:
                                         print(cve_id)
                                         r = nvdlib.searchCVE(cveId=cve_id, key=pthelper_config.NVD_API_KEY)[0]
-                                        print(r.score)
-                                        print(r.descriptions[0].value)
+
+                                        port_dict[portid][cve_id] = {
+                                                                    "cve": cve_id,
+                                                                    "cvss": cvss,
+                                                                    "score_type": r.score[0],
+                                                                    "score": r.score[1],
+                                                                    "severity": r.score[2],
+                                                                    "description": r.descriptions[0].value}
+
+                                        print(port_dict[portid][cve_id])
 
                                     except Exception as e:
                                         print(e)
-                                        print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs')
+                                        print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs.')
                                         pass
-
-
-                                        # , "exploitable": is_exploitable} # Does not add extra info.
 
                 ip_dict.update(port_dict)
 
