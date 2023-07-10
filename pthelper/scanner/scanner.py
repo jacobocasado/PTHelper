@@ -6,7 +6,6 @@ import nvdlib
 from colorama import Fore, Style
 from nmap3 import nmap3
 from functools import wraps
-from tqdm import tqdm
 
 from config.pthelper_config import pthelper_config
 
@@ -60,8 +59,8 @@ class NmapScanner(Scanner):
 
             for port_info in data.get('ports', []):
                 portid = port_info.get('portid', '')
-                service = port_info.get('service', {}).get('name', '')
-                version = port_info.get('service', {}).get('version', '')
+                service = port_info.get('service', {}).get('name', 'Unknown')
+                version = port_info.get('service', {}).get('version', 'Unknown')
 
                 port_dict = {portid: {"service": service, "version": version}}
 
@@ -85,14 +84,11 @@ class NmapScanner(Scanner):
                                                                     "description": r.descriptions[0].value}
 
                                     except Exception as e:
-                                        print(e)
-
+                                        # TODO add default explanation for vuln that is not retrieveable
                                         port_dict[portid][cve_id] = {
                                                 "cve": cve_id,
                                                 "CVSS": cvss
                                         }
-
-                                        print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs.')
                                         pass
 
                 ip_dict.update(port_dict)
@@ -175,7 +171,7 @@ class NmapScanner(Scanner):
 
             for ip, attributes in self.parsed_scan_result.items():
                 os_name = os_results[ip]['osmatch'][0]['name']
-                cpe = os_results[ip]['osmatch'][0]['name']
+                cpe = os_results[ip]['osmatch'][0]['cpe']
 
                 dict = {"os": os_name,
                         "os_cpe": cpe
