@@ -73,7 +73,7 @@ class DocxJinjaTemplateReporter(Reporter):
 
             # Write these details to a JSON configuration file
             with open(pthelper_config.CONFIGFILE, 'w') as f:
-                json.dump(config, f)
+                json.dump(config, f, indent=2)
 
     def report(self):
 

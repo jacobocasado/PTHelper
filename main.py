@@ -71,7 +71,7 @@ def initial_setup():
 
     # Store the dictionary as a JSON file
     with open(pthelper_config.CONFIG_PATH, 'w') as f:
-        json.dump(config, f)
+        json.dump(config, f, indent=2)
 
 # Defining a function to parse command line arguments
 def parse_args():

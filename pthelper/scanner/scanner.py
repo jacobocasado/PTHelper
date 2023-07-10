@@ -42,22 +42,6 @@ class Scanner:
         self.parsed_scan_result = {}
         self.cveinfo = {}
 
-    def buscarCVEs(self):
-
-        input_string = input('\n#Introduzca CVEs separados por comas >> ')
-        CVEs_names = input_string.split(',')
-        print('\nBuscando CVEs.............')
-        for CVE in tqdm(CVEs_names):
-            # try:
-            r = nvdlib.searchCVE(cveId=CVE, key=pthelper_config.NVD_API_KEY)[0]
-            self.cveinfo[r.id] = r
-            # except Exception as e:
-            #    print(e)
-            #    print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs')
-            #    CVEs[CVE] = 'Error API'
-
-        return self.cveinfo
-
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
 class NmapScanner(Scanner):
@@ -73,10 +57,7 @@ class NmapScanner(Scanner):
             if ip in ['runtime', 'stats', 'task_results']:
                 continue
 
-            ip_dict = {
-                "OS": self.os,
-                "OS_cpe": self.os_cpe
-            }
+            ip_dict = {}
 
             for port_info in data.get('ports', []):
                 portid = port_info.get('portid', '')
@@ -93,15 +74,8 @@ class NmapScanner(Scanner):
                                 cve_id = vuln.get('id', '')
 
                                 if 'CVE' in cve_id:
-                                    port_dict[portid][cve_id] = \
-                                    {
-                                                                "cve": cve_id,
-                                                                "CVSS": cvss
-                                    }
-
                                     try:
-                                        print(cve_id)
-                                        r = nvdlib.searchCVE(cveId=cve_id, key=pthelper_config.NVD_API_KEY)[0]
+                                        r = nvdlib.searchCVE(cveId=cve_id, key=pthelper_config.NVD_API_KEY, delay=12)[0]
 
                                         port_dict[portid][cve_id] = {
                                                                     "cve": cve_id,
@@ -111,16 +85,20 @@ class NmapScanner(Scanner):
                                                                     "severity": r.score[2],
                                                                     "description": r.descriptions[0].value}
 
-                                        print(port_dict[portid][cve_id])
-
                                     except Exception as e:
                                         print(e)
+
+                                        port_dict[portid][cve_id] = {
+                                                "cve": cve_id,
+                                                "CVSS": cvss
+                                        }
+
                                         print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs.')
                                         pass
 
                 ip_dict.update(port_dict)
 
-            self.parsed_scan_result[ip] = ip_dict
+            self.parsed_scan_result[ip].update(ip_dict)
 
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
@@ -130,6 +108,7 @@ class NmapScanner(Scanner):
         print(f"Starting port discovery on", self.ip_address, end=". \n")
         nmap_instance = nmap3.NmapHostDiscovery()
         results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
+
         self.ip_open_ports = {}
 
         # Iterate over all IP addresses in the results
@@ -169,13 +148,25 @@ class NmapScanner(Scanner):
             nmap_instance = nmap3.Nmap()
             os_results = nmap_instance.nmap_os_detection(self.ip_address)
 
-            # Asignamos los valores solicitados a las variables de la clase
-            self.os = os_results[self.ip_address]['osmatch'][0]['name']
-            self.os_cpe = os_results[self.ip_address]['osmatch'][0]['cpe']
+            for ip, attributes in os_results.items():
+
+                # Skip entries that are not IPs (e.g., 'runtime', 'stats', etc.)
+                try:
+                    ipaddress.ip_address(ip)
+                except ValueError:
+                    continue
+
+                os_name = attributes['osmatch'][0]['name']
+                cpe = attributes['osmatch'][0]['name']
+
+                dict = {"os": os_name,
+                        "os_cpe": cpe
+                        }
+
+                self.parsed_scan_result.setdefault(ip, {}).update(dict)
+
         else:
-            print(f"PTHelper was not called as root. OS detection will not be available using nmap.")
-            self.os = "Unknown"
-            self.os_cpe = "Unknown"
+            print(f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
         pass
 
     # Define a method to perform a vulnerability discovery on the open ports
@@ -198,6 +189,7 @@ class NmapScanner(Scanner):
                 ip,
                 args=f"--script vulners -p{ports_str}"
             )
+            print(vulners_raw)
             self.parse_scan_results(vulners_raw)
 
     # Define a method to perform a scan
@@ -207,5 +199,7 @@ class NmapScanner(Scanner):
         self.performosdiscovery()
         self.openportdiscovery()
         self.performvulnerabilitydiscovery()
+
+        print(self.parsed_scan_result)
 
         return self.parsed_scan_result

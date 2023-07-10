@@ -6,10 +6,9 @@ class PTHelperConfig:
     COMPATIBLE_LANGUAGES = ["ES"]
     COMPATIBLE_SCANNERS = ["nmap"]
 
-    # Configuration file for the pentester. Replace it also in the reporter class if modified.
+    # Specify the configuration file, to save user presets like name, language, email, etc.
     CONFIG_PATH = 'config/config.json'
     BASE_CORP_LOGO = 'resources/corp_logo.png'
-    # Specify the configuration file, to save user presets like name, language, email, etc.
 
     NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775"
 
@@ -30,7 +29,5 @@ class PTHelperConfig:
             "https": "",
         }
     )
-
-
 
 pthelper_config = PTHelperConfig()
