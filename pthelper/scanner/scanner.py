@@ -33,7 +33,6 @@ class Scanner:
     # Initialize the scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
     def __init__(self, ip_address, ports, mode):
         self.ip_address = ip_address
-        self.os = None
         self.os_cpe = None
         self.ports = ports
         self.mode = mode
@@ -98,7 +97,7 @@ class NmapScanner(Scanner):
 
                 ip_dict.update(port_dict)
 
-            self.parsed_scan_result[ip].update(ip_dict)
+            self.parsed_scan_result[ip] = ip_dict
 
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
@@ -138,36 +137,10 @@ class NmapScanner(Scanner):
             print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
             exit(0)
 
+        print(self.ip_open_ports)
         return self.ip_open_ports
 
-    @add_scanner_prefix
-    def performosdiscovery(self):
-        # nmap_os_detection can only be performed with sudo privileges.
-        # This line if code ensures we are root. If not, we just print that the script is not running as root
-        if os.geteuid() == 0:
-            nmap_instance = nmap3.Nmap()
-            os_results = nmap_instance.nmap_os_detection(self.ip_address)
 
-            for ip, attributes in os_results.items():
-
-                # Skip entries that are not IPs (e.g., 'runtime', 'stats', etc.)
-                try:
-                    ipaddress.ip_address(ip)
-                except ValueError:
-                    continue
-
-                os_name = attributes['osmatch'][0]['name']
-                cpe = attributes['osmatch'][0]['name']
-
-                dict = {"os": os_name,
-                        "os_cpe": cpe
-                        }
-
-                self.parsed_scan_result.setdefault(ip, {}).update(dict)
-
-        else:
-            print(f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
-        pass
 
     # Define a method to perform a vulnerability discovery on the open ports
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
@@ -192,14 +165,44 @@ class NmapScanner(Scanner):
             print(vulners_raw)
             self.parse_scan_results(vulners_raw)
 
+    @add_scanner_prefix
+    def performosdiscovery(self):
+        # nmap_os_detection can only be performed with sudo privileges.
+        # This line if code ensures we are root. If not, we just print that the script is not running as root
+        if os.geteuid() == 0:
+            nmap_instance = nmap3.Nmap()
+            os_results = nmap_instance.nmap_os_detection(self.ip_address)
+
+            for ip, attributes in self.parsed_scan_result.items():
+                os_name = os_results[ip]['osmatch'][0]['name']
+                cpe = os_results[ip]['osmatch'][0]['name']
+
+                dict = {"os": os_name,
+                        "os_cpe": cpe
+                        }
+
+                self.parsed_scan_result[ip].update(dict)
+
+        else:
+            dict = {"os": "Unknown",
+                    "os_cpe": "Unknown"
+                    }
+            for ip, attributes in self.parsed_scan_result.items():
+                self.parsed_scan_result[ip].update(dict)
+
+            print(
+                f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
+        pass
+
     # Define a method to perform a scan
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
 
-        self.performosdiscovery()
         self.openportdiscovery()
+
         self.performvulnerabilitydiscovery()
 
-        print(self.parsed_scan_result)
+        self.performosdiscovery()
 
+        print(self.parsed_scan_result)
         return self.parsed_scan_result
