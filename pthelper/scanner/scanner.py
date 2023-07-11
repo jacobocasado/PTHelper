@@ -142,68 +142,95 @@ class NmapScanner(Scanner):
 
             # For each port of the IP containing information
             for port_info in data.get('ports', []):
+
                 portid = port_info.get('portid', '') # Extract port number
                 service = port_info.get('service', {}).get('name', 'Unknown') # Extract name of the service in port
                 version = port_info.get('service', {}).get('version', 'Unknown') # Extract version of the service in port
 
+                # Create a dict with all these values an the port ID as the key
                 port_dict = {portid: {"service": service, "version": version}}
 
+                # For each one of the scripts executed in the port
                 for script in port_info.get('scripts', []):
+                    # If the script name is VULNERS (we want that)
                     if script.get('name', '') == 'vulners':
+                        # Extract the cve and cve data from the script data field
                         for cve, cve_data in script.get('data', {}).items():
+                            # For each one of the vulns inside a cve (Don't know why vulners has this structure, but OK)
                             for vuln in cve_data.get('children', []):
-                                cvss = vuln.get('cvss', '')
-                                cve_id = vuln.get('id', '')
 
+                                # Obtain the CVSS and CVE ID of the vulnerability.
+                                cve_id = vuln.get('id', '')
+                                cvss = vuln.get('cvss', '')
+
+                                # If the vuln is a CVE (there can be vulns that are not CVEs, but it is rare).
+                                # Nevertheless, I do this to manage all situations :)
                                 if 'CVE' in cve_id:
+                                    # Try to perform a query to the NVD for that ID.
                                     try:
+                                        # Perform the query.
+                                        # TODO tamper with the delay field.
                                         r = nvdlib.searchCVE(cveId=cve_id, key=pthelper_config.NVD_API_KEY, delay=12)[0]
 
+                                        # Store the CVE ID, the CVSS and also the CVSS score and CVE description
+                                        # from the NVD query.
                                         port_dict[portid][cve_id] = {
                                                                     "cve": cve_id,
+                                                                    "description": r.descriptions[0].value,
                                                                     "cvss": cvss,
                                                                     "score_type": r.score[0],
                                                                     "score": r.score[1],
-                                                                    "severity": r.score[2],
-                                                                    "description": r.descriptions[0].value}
-
+                                                                    "severity": r.score[2]
+                                                                    }
+                                    # Sometimes (more than often) the NIST API is slow, or rejects the query.
                                     except Exception as e:
-                                        print(e)
 
+                                        # In that case, we just store the base information obtained without the NVD.
                                         port_dict[portid][cve_id] = {
                                                 "cve": cve_id,
                                                 "CVSS": cvss
                                         }
 
-                                        print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs.')
+                                        # Go to the next IP to handle the exception.
                                         pass
-
+                # Update the dictionary of IPs with that port.
                 ip_dict.update(port_dict)
 
+            # When all ports of that IP are parsed and enhanced, update the output dictionary.
             self.scanner_output[ip] = ip_dict
 
+    # Method that uses another nmap module to perform an OS detection.
+    # This method can only be executed as root, therefore, the check is performed before doing operations.
     @add_scanner_prefix
     def performosdiscovery(self):
         # nmap_os_detection can only be performed with sudo privileges.
         # This line if code ensures we are root. If not, we just print that the script is not running as root
         if os.geteuid() == 0:
+            # Instantiate the scanner
             nmap_instance = nmap3.Nmap()
+            # Perform the OS scan into the IPs in range
             os_results = nmap_instance.nmap_os_detection(self.scanned_ips)
 
+            # For each of the IPs scanned
             for ip, attributes in self.scanner_output.items():
+                # Extract the OS name and OS cpe
                 os_name = os_results[ip]['osmatch'][0]['name']
                 cpe = os_results[ip]['osmatch'][0]['name']
 
+                # Save these values in a dictionary
                 dict = {"os": os_name,
                         "os_cpe": cpe
                         }
 
+                # Update the dictionary of that IP with those values
                 self.scanner_output[ip].update(dict)
 
-        else:
+        else: # If the script is not run as ROOT, the OS and OS cpe are unknown as the scan can't be launched.
+
             dict = {"os": "Unknown",
                     "os_cpe": "Unknown"
                     }
+            # Update these values
             for ip, attributes in self.scanner_output.items():
                 self.scanner_output[ip].update(dict)
 
