@@ -1,18 +1,23 @@
+# Third-party libraries/modules
 import ipaddress
 import os
-
 import nvdlib
 
 from colorama import Fore, Style
 from nmap3 import nmap3
 from functools import wraps
 
+# Local configuration file of PTHelper
 from config.pthelper_config import pthelper_config
 
+# Wrapper to print [SCANNER] when the scanner prints a message.
+# Made in order to differentiate between module outputs.
+# Note that the Scanner module does not show scan info, only information about errors, and when it starts/ends
+# doing some operations.
 def add_scanner_prefix(func):
     @wraps(func)
     def wrapper(self, *args, **kwargs):
-        print (f"{Fore.MAGENTA}[SCANNER]{Style.RESET_ALL}", end=" ")
+        print (f"{Fore.MAGENTA}[SCANNER]{Style.RESET_ALL}", end=" ") # Change here to any word
         return func(self, *args, **kwargs)
     return wrapper
 
@@ -30,37 +35,116 @@ class Scanner:
         return super(Scanner, cls).__new__(scanner_class)
 
     # Initialize the scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
-    def __init__(self, ip_address, ports, mode):
-        self.ip_address = ip_address
-        self.os_cpe = None
-        self.ports = ports
+    def __init__(self, scanned_ips, scanned_ports, mode):
+
+        # Depending on the mode, will be one children class or another.
         self.mode = mode
-        self.open_ports = None
-        self.port_contexts = []
-        self.parsed_scan_result = {}
-        self.cveinfo = {}
+
+        # INPUT OF THE MODULE
+        # Save the IPs and ports to scan in a variable
+        self.scanned_ips = scanned_ips
+        self.scanned_ports = scanned_ports
+
+        # OUTPUT OF THE MODULE
+        # Dictionary with scan results.
+        self.scanner_output = {}
+
+        # Informative message
+        print(f"Initializing {mode} scanner module on {scanned_ips}.")
 
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
 class NmapScanner(Scanner):
 
     # Call the parent class (scanner) to receive parameters.
-    @add_scanner_prefix
-    def __init__(self, ip_address, ports, mode):
-        super().__init__(ip_address, ports, mode)
-        print(f"Initializing {mode} scanner module on {ip_address}.")
+    def __init__(self, ip_address, scanned_ports, mode):
+        super().__init__(ip_address, scanned_ports, mode)
+        # Variable to store the open ports in all the IPs, to perform further scan on these ports.
+        self.ip_open_ports = {}
 
-    def parse_scan_results(self, input_json):
+    # Define a method to perform a scan of open ports
+    # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
+    @add_scanner_prefix
+    def open_port_discovery(self):
+
+        print(f"Starting port discovery on", self.scanned_ips, end=". \n")
+
+        # Instanciate the nmap3 instance
+        nmap_instance = nmap3.NmapHostDiscovery()
+        # Extract the results from the nmap3 portscan only scan
+        results = nmap_instance.nmap_portscan_only(self.scanned_ips, args=f"-p{self.scanned_ports}")
+
+        # Iterate over all the elements in the results dictionary.
+        for ip, data in results.items():
+            # Skip entries that are not IPs (e.g., 'runtime', 'stats', etc.)
+            # For that we just look for an IP address key in the dictionary.
+            try:
+                ipaddress.ip_address(ip)
+            except ValueError:
+                continue
+
+            # Extract port data from that IP.
+            ports_data = data['ports']
+            open_ports = []
+
+            # Iterate over all ports for the current IP
+            for port_data in ports_data:
+                # Check if port is open
+                if port_data['state'] == 'open':
+                    open_ports.append(port_data['portid'])
+
+            # Add open ports for current IP to dictionary only if there is at least one open port
+            if open_ports:
+                self.ip_open_ports[ip] = open_ports
+
+        # If no open ports were found on any IP, terminate the program as the next phases don't have sense.
+        if not self.ip_open_ports:
+            print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
+            exit(0)
+
+    # Define a method to perform a vulnerability discovery on the open ports
+    # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
+    # and calls another method to parse the scan results of this vulnerability scan
+    # and perform NVD queries to enhance the information obtained.
+    @add_scanner_prefix
+    def performvulnerabilitydiscovery(self):
+
+        # Generate a set of all unique open ports across all IPs
+        all_open_ports = {port for ports in self.ip_open_ports.values() for port in ports}
+        # Join all unique open ports with commas
+        ports_str = ','.join(all_open_ports)
+
+        # Instantiate the nmap3 instance.
+        nmap_instance = nmap3.Nmap()
+
+        # Iterate over all IP addresses.
+        for ip in self.ip_open_ports.keys():
+            print(f"Performing vulnerability discovery on", ip)
+            vulners_raw = nmap_instance.nmap_version_detection(
+                ip,
+                args=f"--script vulners -p{ports_str}"
+            )
+            # Calls a function that parses this scan for this IP and enhances it with extra information.
+            self.parse_and_enhance_vulners(vulners_raw)
+
+    # Method that takes the vulners raw dictionary and extracts the useful information for the assessment,
+    # and stores it in a way that will be useful for the rest of the modules.
+    # Also, the information gets enhanced as the CVE IDs are used to perform queries to the NVD using the CVE ID.
+    @add_scanner_prefix
+    def parse_and_enhance_vulners(self, input_json):
+        # We ignore these JSON information as it is not useful for the assessment.
         for ip, data in input_json.items():
             if ip in ['runtime', 'stats', 'task_results']:
                 continue
 
+            # Save the useful information for each of the IPs
             ip_dict = {}
 
+            # For each port of the IP containing information
             for port_info in data.get('ports', []):
-                portid = port_info.get('portid', '')
-                service = port_info.get('service', {}).get('name', 'Unknown')
-                version = port_info.get('service', {}).get('version', 'Unknown')
+                portid = port_info.get('portid', '') # Extract port number
+                service = port_info.get('service', {}).get('name', 'Unknown') # Extract name of the service in port
+                version = port_info.get('service', {}).get('version', 'Unknown') # Extract version of the service in port
 
                 port_dict = {portid: {"service": service, "version": version}}
 
@@ -84,82 +168,19 @@ class NmapScanner(Scanner):
                                                                     "description": r.descriptions[0].value}
 
                                     except Exception as e:
-                                        # TODO add default explanation for vuln that is not retrieveable
+                                        print(e)
+
                                         port_dict[portid][cve_id] = {
                                                 "cve": cve_id,
                                                 "CVSS": cvss
                                         }
+
+                                        print('\nERROR-3: No se ha podido conectar con NVD o no se ha encontrado CVEs.')
                                         pass
 
                 ip_dict.update(port_dict)
 
-            self.parsed_scan_result[ip] = ip_dict
-
-    # Define a method to perform a scan of open ports
-    # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
-    # It then extracts the open ports from the scan results using the get_open_ports method defined above
-    @add_scanner_prefix
-    def openportdiscovery(self):
-        print(f"Starting port discovery on", self.ip_address, end=". \n")
-        nmap_instance = nmap3.NmapHostDiscovery()
-        results = nmap_instance.nmap_portscan_only(self.ip_address, args=f"-p{self.ports}")
-
-        self.ip_open_ports = {}
-
-        # Iterate over all IP addresses in the results
-        for ip, data in results.items():
-            # Skip entries that are not IPs (e.g., 'runtime', 'stats', etc.)
-            try:
-                ipaddress.ip_address(ip)
-            except ValueError:
-                continue
-
-            # Extract port data
-            ports_data = data['ports']
-            open_ports = []
-
-            # Iterate over all ports for the current IP
-            for port_data in ports_data:
-                # Check if port is open
-                if port_data['state'] == 'open':
-                    open_ports.append(port_data['portid'])
-
-            # Add open ports for current IP to dictionary only if there is at least one open port
-            if open_ports:
-                self.ip_open_ports[ip] = open_ports
-
-        # If no open ports were found on any IP, terminate the program
-        if not self.ip_open_ports:
-            print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
-            exit(0)
-
-        print(self.ip_open_ports)
-        return self.ip_open_ports
-
-
-
-    # Define a method to perform a vulnerability discovery on the open ports
-    # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
-    # parses the raw results into a more readable format, and then saves these results to the port_context of the instance
-    @add_scanner_prefix
-    def performvulnerabilitydiscovery(self):
-
-        # Generate a set of all unique open ports across all IPs
-        all_open_ports = {port for ports in self.ip_open_ports.values() for port in ports}
-        # Join all unique open ports with commas
-        ports_str = ','.join(all_open_ports)
-
-        nmap_instance = nmap3.Nmap()
-
-        # Iterate over all IP addresses
-        for ip in self.ip_open_ports.keys():
-            print(f"Performing vulnerability discovery on", ip)
-            vulners_raw = nmap_instance.nmap_version_detection(
-                ip,
-                args=f"--script vulners -p{ports_str}"
-            )
-            print(vulners_raw)
-            self.parse_scan_results(vulners_raw)
+            self.scanner_output[ip] = ip_dict
 
     @add_scanner_prefix
     def performosdiscovery(self):
@@ -167,24 +188,24 @@ class NmapScanner(Scanner):
         # This line if code ensures we are root. If not, we just print that the script is not running as root
         if os.geteuid() == 0:
             nmap_instance = nmap3.Nmap()
-            os_results = nmap_instance.nmap_os_detection(self.ip_address)
+            os_results = nmap_instance.nmap_os_detection(self.scanned_ips)
 
-            for ip, attributes in self.parsed_scan_result.items():
+            for ip, attributes in self.scanner_output.items():
                 os_name = os_results[ip]['osmatch'][0]['name']
-                cpe = os_results[ip]['osmatch'][0]['cpe']
+                cpe = os_results[ip]['osmatch'][0]['name']
 
                 dict = {"os": os_name,
                         "os_cpe": cpe
                         }
 
-                self.parsed_scan_result[ip].update(dict)
+                self.scanner_output[ip].update(dict)
 
         else:
             dict = {"os": "Unknown",
                     "os_cpe": "Unknown"
                     }
-            for ip, attributes in self.parsed_scan_result.items():
-                self.parsed_scan_result[ip].update(dict)
+            for ip, attributes in self.scanner_output.items():
+                self.scanner_output[ip].update(dict)
 
             print(
                 f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
@@ -194,11 +215,11 @@ class NmapScanner(Scanner):
     # This method performs open port discovery and vulnerability discovery, and then returns the port context
     def scan(self):
 
-        self.openportdiscovery()
+        self.open_port_discovery()
 
         self.performvulnerabilitydiscovery()
 
         self.performosdiscovery()
 
-        print(self.parsed_scan_result)
-        return self.parsed_scan_result
+        print(self.scanner_output)
+        return self.scanner_output
