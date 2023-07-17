@@ -7,7 +7,7 @@ from nlpagent.agent.chatgpt.chatgptagent import NLPAgent
 from scanner.scanner import Scanner
 from banner.banner import Banner
 from reporter.reporter import Reporter
-from config.pthelper_config import pthelper_config
+from config.pthelper_config import general_config
 
 # TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
@@ -47,17 +47,17 @@ def initial_setup():
     pentester_email = input('Your e-mail address: ')
     # For the language, ensure that the user-specified lanuage is in the language list.
     # The language list is in the COMPATIBLE_LANGUAGES variable.
-    default_language = input(f"Your preferred language (available: {pthelper_config.COMPATIBLE_LANGUAGES}): ")
-    while default_language not in pthelper_config.COMPATIBLE_LANGUAGES:
+    default_language = input(f"Your preferred language (available: {general_config.COMPATIBLE_LANGUAGES}): ")
+    while default_language not in general_config.COMPATIBLE_LANGUAGES:
         print("This tool is not available in the specified language (yet).")
-        print(f"The available languages are: {pthelper_config.COMPATIBLE_LANGUAGES}")
-        default_language = input(f"Your preferred language (available: {pthelper_config.COMPATIBLE_LANGUAGES}): ")
+        print(f"The available languages are: {general_config.COMPATIBLE_LANGUAGES}")
+        default_language = input(f"Your preferred language (available: {general_config.COMPATIBLE_LANGUAGES}): ")
 
-    default_scanner = input(f"Your preferred scanner type (available: {pthelper_config.COMPATIBLE_SCANNERS}): ")
-    while default_scanner not in pthelper_config.COMPATIBLE_SCANNERS:
+    default_scanner = input(f"Your preferred scanner type (available: {general_config.COMPATIBLE_SCANNERS}): ")
+    while default_scanner not in general_config.COMPATIBLE_SCANNERS:
         print("This tool does not use the specified scanner type.")
-        print(f"The available scanner types are: {pthelper_config.COMPATIBLE_SCANNERS}")
-        default_scanner = input(f"Your preferred scanner type (available: {pthelper_config.COMPATIBLE_SCANNERS}): ")
+        print(f"The available scanner types are: {general_config.COMPATIBLE_SCANNERS}")
+        default_scanner = input(f"Your preferred scanner type (available: {general_config.COMPATIBLE_SCANNERS}): ")
     # TODO use default config if specified, if not, ask user for it.
 
     # Create a dictionary with the user information
@@ -70,7 +70,7 @@ def initial_setup():
               }
 
     # Store the dictionary as a JSON file
-    with open(pthelper_config.CONFIG_PATH, 'w') as f:
+    with open(general_config.CONFIG_PATH, 'w') as f:
         json.dump(config, f, indent=2)
 
 # Defining a function to parse command line arguments
@@ -89,12 +89,12 @@ def parse_args():
     args = parser.parse_args()
 
     # Update pthelper configuration with provided information
-    pthelper_config.PROJECTPATH = os.path.join('projects', args.project)
-    pthelper_config.CONFIGFILE = os.path.join(pthelper_config.PROJECTPATH, 'config.json')
-    pthelper_config.RESULTSFILE = os.path.join(pthelper_config.PROJECTPATH, 'results.json')
-    pthelper_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
-    pthelper_config.PROJECTEXISTS = os.path.exists(pthelper_config.CONFIGFILE)
-    pthelper_config.CONVERSATIONFILE = os.path.join(pthelper_config.PROJECTPATH, 'conversation_id.txt')
+    general_config.PROJECTPATH = os.path.join('projects', args.project)
+    general_config.CONFIGFILE = os.path.join(general_config.PROJECTPATH, 'config.json')
+    general_config.RESULTSFILE = os.path.join(general_config.PROJECTPATH, 'results.json')
+    general_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
+    general_config.PROJECTEXISTS = os.path.exists(general_config.CONFIGFILE)
+    general_config.CONVERSATIONFILE = os.path.join(general_config.PROJECTPATH, 'conversation_id.txt')
 
     # Validate the entered IP address
     # try:
@@ -104,7 +104,7 @@ def parse_args():
     #     exit(1)
 
     # If this is the first time using the tool, user information is requested
-    if not os.path.exists(pthelper_config.CONFIG_PATH):
+    if not os.path.exists(general_config.CONFIG_PATH):
         initial_setup()
 
     # Return parsed arguments
@@ -129,8 +129,9 @@ if __name__ == '__main__':
         reporter = Reporter(args.reporter, scan_results)
         reporter.report()
 
-    # agent = NLPAgent("chatgpt")
-    # agent.process(scan_results)
+    agent = NLPAgent("chatgpt")
+    print("aa", scan_results)
+    agent.process(scan_results)
 
 
 

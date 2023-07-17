@@ -8,7 +8,7 @@ from nmap3 import nmap3
 from functools import wraps
 
 # Local configuration file of PTHelper
-from config.pthelper_config import pthelper_config
+from config.pthelper_config import general_config, scanner_config
 
 # Wrapper to print [SCANNER] when the scanner prints a message.
 # Made in order to differentiate between module outputs.
@@ -169,8 +169,7 @@ class NmapScanner(Scanner):
                                     # Try to perform a query to the NVD for that ID.
                                     try:
                                         # Perform the query.
-                                        # TODO tamper with the delay field.
-                                        r = nvdlib.searchCVE(cveId=cve_id, key=pthelper_config.NVD_API_KEY, delay=12)[0]
+                                        r = nvdlib.searchCVE(cveId=cve_id, key=scanner_config.NVD_API_KEY)[0]
 
                                         # Store the CVE ID, the CVSS and also the CVSS score and CVE description
                                         # from the NVD query.
@@ -239,14 +238,18 @@ class NmapScanner(Scanner):
         pass
 
     # Define a method to perform a scan
-    # This method performs open port discovery and vulnerability discovery, and then returns the port context
+    # This method performs:
+    # 1. A host discovery + open port discovery.
+    # 2. A vulnerability discovery on the alive hosts with the list of open ports.
+    # 3. An OS discovery on the alive hosts.
+    # The returned information goes to the rest of the modules.
     def scan(self):
-
+        # 1. Host discovery + open port discovery.
         self.open_port_discovery()
-
+        # 2. Vulnerability discovery on the alive hosts with the list of open ports.
         self.performvulnerabilitydiscovery()
-
+        # 3. OS discovery on the alive hosts.
         self.performosdiscovery()
 
-        print(self.scanner_output)
+        # Return the information for the rest of the modules.
         return self.scanner_output

@@ -1,8 +1,8 @@
 import dataclasses
 
-@dataclasses.dataclass
-class PTHelperConfig:
 
+@dataclasses.dataclass
+class GeneralConfig:
     COMPATIBLE_LANGUAGES = ["ES"]
     COMPATIBLE_SCANNERS = ["nmap"]
 
@@ -10,14 +10,19 @@ class PTHelperConfig:
     CONFIG_PATH = 'config/config.json'
     BASE_CORP_LOGO = 'resources/corp_logo.png'
 
-    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775"
-
     PROJECTPATH = None
     CONFIGFILE = None
     RESULTSFILE = None
     DESIRED_CORP_LOGO = None
     PROJECTEXISTS = False
 
+
+@dataclasses.dataclass
+class ScannerConfig:
+    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775"
+
+
+class AgentConfig:
     OPENAI_API_KEY = "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"
     CONVERSATIONPATH = None
     HISTORY_LENGTH = 20
@@ -30,4 +35,7 @@ class PTHelperConfig:
         }
     )
 
-pthelper_config = PTHelperConfig()
+
+general_config = GeneralConfig()
+scanner_config = ScannerConfig()
+agent_config = AgentConfig()

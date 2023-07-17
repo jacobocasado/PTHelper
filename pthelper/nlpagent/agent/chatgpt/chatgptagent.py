@@ -5,7 +5,7 @@ import time
 from uuid import uuid1
 
 import openai  # pip install openai
-from config.pthelper_config import pthelper_config
+from config.pthelper_config import agent_config
 from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
 from nlpagent.prompts.prompts import NLPAgentPrompt
 
@@ -31,7 +31,6 @@ class NLPAgent:
     def process(self, basic_context):
         print(f"[AGENT] Starting...")
 
-
 # Children class that uses ChatGPT agent with ChatGPTAPI library as the NLPAgent type.
 # This is the first NLPAgent type available.
 class ChatGPTAPIAgent(NLPAgent):
@@ -40,7 +39,7 @@ class ChatGPTAPIAgent(NLPAgent):
         super().__init__(mode)
         # Initialize ChatGPTAPI
         self.api = ChatGPTAPI()
-        openai.api_key = pthelper_config.OPENAI_API_KEY
+        openai.api_key = agent_config.OPENAI_API_KEY
 
     def cve_summary(self,port_context):
         response, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.generation_session_init)

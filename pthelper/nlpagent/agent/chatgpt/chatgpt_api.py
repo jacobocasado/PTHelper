@@ -8,7 +8,7 @@ import openai, tiktoken
 
 from typing import Dict, List
 from uuid import uuid1
-from config.pthelper_config import pthelper_config
+from config.pthelper_config import general_config, agent_config
 
 logger = loguru.logger
 logger.remove()
@@ -41,8 +41,8 @@ class Conversation:
 
 class ChatGPTAPI:
     def __init__(self):
-        openai.proxy = pthelper_config.CHATGPT_PROXIES
-        self.history_length = pthelper_config.HISTORY_LENGTH # maintain 5 messages in the history. (5 chat memory)
+        # openai.proxy = agent_config.CHATGPT_PROXIES
+        self.history_length = agent_config.HISTORY_LENGTH
         self.conversation_dict: Dict[str, Conversation] = {}
 
     def count_token(self, messages) -> int:
@@ -86,7 +86,7 @@ class ChatGPTAPI:
         -------
             compressed_message: str
         """
-        if pthelper_config.NLPAGENTMODEL == "gpt-4":
+        if agent_config.NLPAGENTMODEL == "gpt-4":
             token_limit = 8000
         else:
             token_limit = 4000
@@ -110,9 +110,9 @@ class ChatGPTAPI:
         return raw_message
 
     def chatgpt_completion(
-        self, history: List, model="gpt-3.5-turbo-16k", temperature=0.05
+        self, history: List, model="gpt-3.5-turbo", temperature=0.05
     ) -> str:
-        if pthelper_config.NLPAGENTMODEL == "gpt-4":
+        if agent_config.NLPAGENTMODEL == "gpt-4":
             model = "gpt-4"
             # otherwise, just use the default model (because it is cheaper lol)
         try:
@@ -124,11 +124,11 @@ class ChatGPTAPI:
         except openai.error.APIConnectionError as e:  # give one more try
             logger.warning(
                 "API Connection Error. Waiting for {} seconds".format(
-                    pthelper_config.ERROR_WAIT_TIME
+                    agent_config.ERROR_WAIT_TIME
                 )
             )
             logger.log("Connection Error: ", e)
-            time.sleep(pthelper_config.ERROR_WAIT_TIME)
+            time.sleep(agent_config.ERROR_WAIT_TIME)
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=history,
@@ -137,11 +137,11 @@ class ChatGPTAPI:
         except openai.error.RateLimitError as e:  # give one more try
             logger.warning(
                 "Rate limit reached. Waiting for {} seconds".format(
-                    pthelper_config.ERROR_WAIT_TIME
+                    agent_config.ERROR_WAIT_TIME
                 )
             )
             logger.error("Rate Limit Error: ", e)
-            time.sleep(pthelper_config.ERROR_WAIT_TIME)
+            time.sleep(agent_config.ERROR_WAIT_TIME)
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=history,
@@ -204,7 +204,7 @@ class ChatGPTAPI:
 
         # create a new conversation with a new uuid
         conversation_id = str(uuid1())
-        with open(pthelper_config.CONVERSATIONFILE, "w") as file:
+        with open(general_config.CONVERSATIONFILE, "w") as file:
             file.write(conversation_id)
         conversation: Conversation = Conversation()
         conversation.conversation_id = conversation_id
@@ -232,7 +232,7 @@ class ChatGPTAPI:
 
         # create a new conversation with a new uuid
         conversation_id = str(uuid1())
-        with open(pthelper_config.CONVERSATIONFILE, "w") as file:
+        with open(agent_config.CONVERSATIONFILE, "w") as file:
             file.write(conversation_id)
         conversation: Conversation = Conversation()
         conversation.conversation_id = conversation_id
