@@ -3,25 +3,19 @@ import ipaddress
 import os
 import nvdlib
 
-from colorama import Fore, Style
 from nmap3 import nmap3
-from functools import wraps
+from rich.console import Console
 
 # Local configuration file of PTHelper
 from config.pthelper_config import general_config, scanner_config
 
-# Wrapper to print [SCANNER] when the scanner prints a message.
+# Wrapper to self.console.print [SCANNER] when the scanner self.console.prints a message.
 # Made in order to differentiate between module outputs.
 # Note that the Scanner module does not show scan info, only information about errors, and when it starts/ends
 # doing some operations.
-def add_scanner_prefix(func):
-    @wraps(func)
-    def wrapper(self, *args, **kwargs):
-        print (f"{Fore.MAGENTA}[SCANNER]{Style.RESET_ALL}", end=" ") # Change here to any word
-        return func(self, *args, **kwargs)
-    return wrapper
 
 # Define a scanner class that takes in ip_address, ports, and mode of scan
+# TODO hacer el resto de modulos, pero tener en cuenta que se puede mejorar esto para automatizar la explotacion
 class Scanner:
     # Use __new__ to create a new instance of the scanner_class based on the provided mode
     def __new__(cls, ip_address, ports, mode):
@@ -36,7 +30,6 @@ class Scanner:
 
     # Initialize the scanner with ip_address, ports, and mode. Initialize open_ports list and port_context
     def __init__(self, scanned_ips, scanned_ports, mode):
-
         # Depending on the mode, will be one children class or another.
         self.mode = mode
 
@@ -49,8 +42,10 @@ class Scanner:
         # Dictionary with scan results.
         self.scanner_output = {}
 
+        self.console = Console()
+
         # Informative message
-        print(f"Initializing {mode} scanner module on {scanned_ips}.")
+        self.console.print(f"Initializing {mode} scanner module on {scanned_ips}.")
 
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
@@ -64,10 +59,9 @@ class NmapScanner(Scanner):
 
     # Define a method to perform a scan of open ports
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
-    @add_scanner_prefix
     def open_port_discovery(self):
 
-        print(f"Starting port discovery on", self.scanned_ips, end=". \n")
+        self.console.print(f"Starting port discovery on", self.scanned_ips, end=". \n", style="bold magenta")
 
         # Instanciate the nmap3 instance
         nmap_instance = nmap3.NmapHostDiscovery()
@@ -99,14 +93,13 @@ class NmapScanner(Scanner):
 
         # If no open ports were found on any IP, terminate the program as the next phases don't have sense.
         if not self.ip_open_ports:
-            print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
+            self.console.print(f"No open ports found on any IP. Make sure you are inserting valid IP addresses.")
             exit(0)
 
     # Define a method to perform a vulnerability discovery on the open ports
     # This method creates a new Nmap instance, performs a vulnerability scan on the open ports,
     # and calls another method to parse the scan results of this vulnerability scan
     # and perform NVD queries to enhance the information obtained.
-    @add_scanner_prefix
     def performvulnerabilitydiscovery(self):
 
         # Generate a set of all unique open ports across all IPs
@@ -119,7 +112,7 @@ class NmapScanner(Scanner):
 
         # Iterate over all IP addresses.
         for ip in self.ip_open_ports.keys():
-            print(f"Performing vulnerability discovery on", ip)
+            self.console.print(f"Performing vulnerability discovery on", ip)
             vulners_raw = nmap_instance.nmap_version_detection(
                 ip,
                 args=f"--script vulners -p{ports_str}"
@@ -130,7 +123,6 @@ class NmapScanner(Scanner):
     # Method that takes the vulners raw dictionary and extracts the useful information for the assessment,
     # and stores it in a way that will be useful for the rest of the modules.
     # Also, the information gets enhanced as the CVE IDs are used to perform queries to the NVD using the CVE ID.
-    @add_scanner_prefix
     def parse_and_enhance_vulners(self, input_json):
         # We ignore these JSON information as it is not useful for the assessment.
         for ip, data in input_json.items():
@@ -143,9 +135,10 @@ class NmapScanner(Scanner):
             # For each port of the IP containing information
             for port_info in data.get('ports', []):
 
-                portid = port_info.get('portid', '') # Extract port number
-                service = port_info.get('service', {}).get('name', 'Unknown') # Extract name of the service in port
-                version = port_info.get('service', {}).get('version', 'Unknown') # Extract version of the service in port
+                portid = port_info.get('portid', '')  # Extract port number
+                service = port_info.get('service', {}).get('name', 'Unknown')  # Extract name of the service in port
+                version = port_info.get('service', {}).get('version',
+                                                           'Unknown')  # Extract version of the service in port
 
                 # Create a dict with all these values an the port ID as the key
                 port_dict = {portid: {"service": service, "version": version}}
@@ -174,20 +167,21 @@ class NmapScanner(Scanner):
                                         # Store the CVE ID, the CVSS and also the CVSS score and CVE description
                                         # from the NVD query.
                                         port_dict[portid][cve_id] = {
-                                                                    "cve": cve_id,
-                                                                    "description": r.descriptions[0].value,
-                                                                    "cvss": cvss,
-                                                                    "score_type": r.score[0],
-                                                                    "score": r.score[1],
-                                                                    "severity": r.score[2]
-                                                                    }
+                                            "cve": cve_id,
+                                            "description": r.descriptions[0].value,
+                                            "cvss": cvss,
+                                            "score_type": r.score[0],
+                                            "score": r.score[1],
+                                            "severity": r.score[2]
+                                        }
+
                                     # Sometimes (more than often) the NIST API is slow, or rejects the query.
                                     except Exception as e:
 
                                         # In that case, we just store the base information obtained without the NVD.
                                         port_dict[portid][cve_id] = {
-                                                "cve": cve_id,
-                                                "CVSS": cvss
+                                            "cve": cve_id,
+                                            "CVSS": cvss
                                         }
 
                                         # Go to the next IP to handle the exception.
@@ -200,10 +194,9 @@ class NmapScanner(Scanner):
 
     # Method that uses another nmap module to perform an OS detection.
     # This method can only be executed as root, therefore, the check is performed before doing operations.
-    @add_scanner_prefix
     def performosdiscovery(self):
         # nmap_os_detection can only be performed with sudo privileges.
-        # This line if code ensures we are root. If not, we just print that the script is not running as root
+        # This line if code ensures we are root. If not, we just self.console.print that the script is not running as root
         if os.geteuid() == 0:
             # Instantiate the scanner
             nmap_instance = nmap3.Nmap()
@@ -224,7 +217,7 @@ class NmapScanner(Scanner):
                 # Update the dictionary of that IP with those values
                 self.scanner_output[ip].update(dict)
 
-        else: # If the script is not run as ROOT, the OS and OS cpe are unknown as the scan can't be launched.
+        else:  # If the script is not run as ROOT, the OS and OS cpe are unknown as the scan can't be launched.
 
             dict = {"os": "Unknown",
                     "os_cpe": "Unknown"
@@ -233,7 +226,7 @@ class NmapScanner(Scanner):
             for ip, attributes in self.scanner_output.items():
                 self.scanner_output[ip].update(dict)
 
-            print(
+            self.console.print(
                 f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
         pass
 
@@ -251,5 +244,6 @@ class NmapScanner(Scanner):
         # 3. OS discovery on the alive hosts.
         self.performosdiscovery()
 
+        print(self.scanner_output)
         # Return the information for the rest of the modules.
         return self.scanner_output

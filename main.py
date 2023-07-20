@@ -3,10 +3,10 @@ import os
 import re
 import argparse
 
-from nlpagent.agent.chatgpt.chatgptagent import NLPAgent
-from scanner.scanner import Scanner
-from banner.banner import Banner
-from reporter.reporter import Reporter
+from pthelper.nlpagent.agent.chatgpt.chatgptagent import NLPAgent
+from pthelper.scanner.scanner import Scanner
+from pthelper.banner.banner import Banner
+from pthelper.reporter.reporter import Reporter
 from config.pthelper_config import general_config
 
 # TODO Comment everything
@@ -110,8 +110,7 @@ def parse_args():
     # Return parsed arguments
     return args
 
-# Main script entry point
-if __name__ == '__main__':
+def main():
     # Display the banner
     Banner.display()
 
@@ -129,9 +128,12 @@ if __name__ == '__main__':
         reporter = Reporter(args.reporter, scan_results)
         reporter.report()
 
-    agent = NLPAgent("chatgpt")
-    print("aa", scan_results)
-    agent.process(scan_results)
+# Main script entry point
+if __name__ == '__main__':
+    main()
+
+
+
 
 
 

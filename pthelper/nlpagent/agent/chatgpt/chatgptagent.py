@@ -1,13 +1,7 @@
-import dataclasses
-import os
-import re
-import time
-from uuid import uuid1
-
 import openai  # pip install openai
 from config.pthelper_config import agent_config
-from nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
-from nlpagent.prompts.prompts import NLPAgentPrompt
+from pthelper.nlpagent.agent.chatgpt.chatgpt_api import ChatGPTAPI
+from pthelper.nlpagent.prompts.prompts import NLPAgentPrompt
 
 
 class NLPAgent:
