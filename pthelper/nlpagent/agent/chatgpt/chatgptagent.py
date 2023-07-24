@@ -19,9 +19,6 @@ class NLPAgent:
     def __init__(self, mode):
         self.mode = mode
 
-    def report(self):
-        self.mode.report()
-
     def process(self, basic_context):
         print(f"[AGENT] Starting...")
 

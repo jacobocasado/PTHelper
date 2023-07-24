@@ -30,17 +30,26 @@ class Reporter:
         self.context = None
 
     def create_port_contexts(self, scanner_output):
-        self.port_contexts = {
-            'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
-            'port_context_rows': []
-        }
+        if os.path.exists(general_config.RESULTSFILE):
+            # If the "results.json" file exists, read its content and update self.port_contexts
+            with open(general_config.RESULTSFILE, 'r') as f:
+                self.port_contexts = json.load(f)
+        else:
+            # If the "results.json" file doesn't exist, create a new self.port_contexts dictionary
+            self.port_contexts = {
+                'port_context_columns': ['Ports', 'Service', 'Version', 'CVEs'],
+                'port_context_rows': []
+            }
+
+        # Convert the current port_context_rows IPs into a dictionary for easier update
+        current_ips = {row['label']: row for row in self.port_contexts['port_context_rows']}
+
         for ip, data in scanner_output.items():
             ports = []
             services = []
             versions = []
             cves = []
             for port, info in data.items():
-
                 if isinstance(info, dict) and 'service' in info and 'version' in info:
                     ports.append(port)
                     services.append(info.get('service', ''))
@@ -50,12 +59,22 @@ class Reporter:
                     cve_info = [key for key in info.keys() if key.startswith('CVE-')]
                     cves.append(", ".join(cve_info))
 
-            port_context_rows = {
+            port_context_row = {
                 'label': ip,
                 'cols': ['\n'.join(map(str, ports)), '\n'.join(services), '\n'.join(versions), '\n'.join(cves)]
             }
 
-            self.port_contexts['port_context_rows'].append(port_context_rows)
+            # Check if the IP already exists in the current_ips dictionary
+            if ip in current_ips:
+                # If the IP exists, update its 'cols' data with the new values
+                current_ips[ip]['cols'] = port_context_row['cols']
+            else:
+                # If the IP doesn't exist, add the new entry to the port_contexts dictionary
+                self.port_contexts['port_context_rows'].append(port_context_row)
+
+        # Save the updated/created self.port_contexts back to the "results.json" file
+        with open(general_config.RESULTSFILE, 'w') as f:
+            json.dump(self.port_contexts, f, indent=4)
 
         return self.port_contexts
 
@@ -79,10 +98,6 @@ class DocxJinjaTemplateReporter(Reporter):
 
     def report(self):
 
-        # Firstly, dump the contents of the scanner in the results file of the project.
-        # For further manipulations and usage of the information.
-        with open(general_config.RESULTSFILE, 'w') as f:
-            json.dump(self.port_contexts, f, indent=4)
         # Load a Word template using docxtpl
         tpl = DocxTemplate('templates/template.docx')
         # Create a Jinja2 environment with autoescape turned on for security
@@ -106,7 +121,7 @@ class DocxJinjaTemplateReporter(Reporter):
             self.context.update(context_results)
 
         self.update_report_date(self.context)
-
+        self.update_project_name()
 
         # Render the template with the context data
         tpl.render(self.context, jinja_env)
@@ -119,4 +134,9 @@ class DocxJinjaTemplateReporter(Reporter):
             "project_date": date.today()
         }
         self.context.update(project_date)
+
+    def update_project_name(self):
+        project_name = {
+            "project_name": "TFM_DEMO"
+        }
 
