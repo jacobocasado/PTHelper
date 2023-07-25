@@ -19,11 +19,11 @@ class GeneralConfig:
 
 @dataclasses.dataclass
 class ScannerConfig:
-    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775"
+    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775" # Put NVD API key here!
 
-
+@dataclasses.dataclass
 class AgentConfig:
-    OPENAI_API_KEY = "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"
+    OPENAI_API_KEY = "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" # Put OpenAI Key here!
     CONVERSATIONPATH = None
     HISTORY_LENGTH = 20
     ERROR_WAIT_TIME = 5
@@ -35,7 +35,13 @@ class AgentConfig:
         }
     )
 
+@dataclasses.dataclass
+class ExploiterConfig():
+    EXPLOIT_PATH = '/tmp/exploits/' # This value is used just in case. In Exploiter class, this value is OVERWRITTEN!
 
 general_config = GeneralConfig()
 scanner_config = ScannerConfig()
 agent_config = AgentConfig()
+exploiter_config = ExploiterConfig()
+
+

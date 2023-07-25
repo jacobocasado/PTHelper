@@ -3,10 +3,12 @@ import os
 import re
 import argparse
 
-from pthelper.nlpagent.agent.chatgpt.chatgptagent import NLPAgent
-from pthelper.scanner.scanner import Scanner
+
 from pthelper.banner.banner import Banner
+from pthelper.scanner.scanner import Scanner
 from pthelper.reporter.reporter import Reporter
+from exploiter.exploiter import Exploiter
+from pthelper.nlpagent.agent.chatgpt.chatgptagent import NLPAgent
 from config.pthelper_config import general_config
 
 # TODO Comment everything
@@ -82,6 +84,7 @@ def parse_args():
     parser.add_argument('-ip', dest='ip_address', type=str, help='IP address to scan')
     parser.add_argument('-p', dest='ports', type=check_ports, help='Ports to scan')
     parser.add_argument('-scanner', dest='scanner', type=str, help='scanner tool to use (available: nmap)')
+    parser.add_argument('-exploiter', dest='exploiter', type=str, help='Tool to retrieve exploit scripts (e.g., exploitdb)')
     parser.add_argument('-reporter', dest='reporter', type=str, help='reporter tool to use (available: docxtpl)')
     parser.add_argument('-project', dest='project', type=str, help='Project to store information (e.g., TFM)')
     parser.add_argument('-agent', dest='agent', type=str, help='NLP Agent (e.g., chatgpt)')
@@ -123,10 +126,15 @@ def main():
     # Perform the scan and get the scan context
     scan_results = scanner.scan()
 
+    print(scan_results)
+
     # If a reporting tool and project was specified, create a Reporter object
     if args.reporter and args.project:
         reporter = Reporter(args.reporter, scan_results)
         reporter.report()
+
+    exploiter = Exploiter(args.exploiter, scan_results)
+    exploiter.exploit()
 
     #agent = NLPAgent(args.agent)
     #agent.process(scan_results)

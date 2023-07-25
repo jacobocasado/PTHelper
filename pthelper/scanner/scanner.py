@@ -1,5 +1,6 @@
 # Third-party libraries/modules
 import ipaddress
+import json
 import os
 import nvdlib
 
@@ -120,6 +121,11 @@ class NmapScanner(Scanner):
             # Calls a function that parses this scan for this IP and enhances it with extra information.
             self.parse_and_enhance_vulners(vulners_raw)
 
+        # Once all the data is in the JSON, just order the CVEs per CVSS.
+        # Higher CVSS will be the first in the JSON.
+        # self.sort_cves_by_cvss(self.scanner_output)
+
+
     # Method that takes the vulners raw dictionary and extracts the useful information for the assessment,
     # and stores it in a way that will be useful for the rest of the modules.
     # Also, the information gets enhanced as the CVE IDs are used to perform queries to the NVD using the CVE ID.
@@ -154,7 +160,7 @@ class NmapScanner(Scanner):
 
                                 # Obtain the CVSS and CVE ID of the vulnerability.
                                 cve_id = vuln.get('id', '')
-                                cvss = vuln.get('cvss', '')
+                                cvss = float(vuln.get('cvss', ''))
 
                                 # If the vuln is a CVE (there can be vulns that are not CVEs, but it is rare).
                                 # Nevertheless, I do this to manage all situations :)
@@ -230,6 +236,13 @@ class NmapScanner(Scanner):
                 f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
         pass
 
+    def sort_cves_by_cvss(self):
+        for ip, cves_data in self.scanner_output.items():
+            if 'CVEs' in cves_data:
+                cves = cves_data['CVEs']
+                sorted_cves = sorted(cves.items(), key=lambda x: x[1]['cvss'], reverse=True)
+                cves_data['CVEs'] = dict(sorted_cves)
+
     # Define a method to perform a scan
     # This method performs:
     # 1. A host discovery + open port discovery.
@@ -243,7 +256,9 @@ class NmapScanner(Scanner):
         self.performvulnerabilitydiscovery()
         # 3. OS discovery on the alive hosts.
         self.performosdiscovery()
+        # It is best to sort the CVEs per CVSS, for the future module usage.
+        self.sort_cves_by_cvss()
 
-        print(self.scanner_output)
+
         # Return the information for the rest of the modules.
         return self.scanner_output
