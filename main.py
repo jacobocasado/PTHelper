@@ -133,6 +133,8 @@ def main():
         reporter = Reporter(args.reporter, scan_results)
         reporter.report()
 
+    print(general_config.PROJECTPATH)
+
     exploiter = Exploiter(args.exploiter, scan_results)
     exploiter.exploit()
 
