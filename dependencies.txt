@@ -7,3 +7,4 @@ console==0.9907
 tiktoken==0.4.0
 nvdlib==0.7.4
 loguru==0.7.0
+rich==13.5.2

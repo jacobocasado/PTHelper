@@ -126,14 +126,10 @@ def main():
     # Perform the scan and get the scan context
     scan_results = scanner.scan()
 
-    print(scan_results)
-
     # If a reporting tool and project was specified, create a Reporter object
     if args.reporter and args.project:
         reporter = Reporter(args.reporter, scan_results)
         reporter.report()
-
-    print(general_config.PROJECTPATH)
 
     exploiter = Exploiter(args.exploiter, scan_results)
     exploiter.exploit()
