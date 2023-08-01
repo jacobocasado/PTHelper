@@ -57,7 +57,7 @@ class Reporter:
 
                     # Extract CVEs
                     cve_info = [key for key in info.keys() if key.startswith('CVE-')]
-                    cves.append(", ".join(cve_info))
+                    cves.append("\n".join(cve_info))
 
             port_context_row = {
                 'label': ip,
