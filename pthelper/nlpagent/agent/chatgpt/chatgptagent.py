@@ -33,7 +33,7 @@ class ChatGPTAPIAgent(NLPAgent):
         openai.api_key = agent_config.OPENAI_API_KEY
 
     def cve_summary(self,port_context):
-        response, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.generation_session_init)
+        response, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.console_output)
         response = self.api.send_message(str(port_context), conversation_id)
         print(response)
     def process(self, context):

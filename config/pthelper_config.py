@@ -34,6 +34,7 @@ class AgentConfig:
             "https": "",
         }
     )
+    TEMPERATURE = 0.00
 
 @dataclasses.dataclass
 class ExploiterConfig():

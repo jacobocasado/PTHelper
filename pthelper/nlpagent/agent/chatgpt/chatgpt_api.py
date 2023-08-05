@@ -110,7 +110,7 @@ class ChatGPTAPI:
         return raw_message
 
     def chatgpt_completion(
-        self, history: List, model="gpt-3.5-turbo", temperature=0.05
+        self, history: List, model="gpt-3.5-turbo", temperature=agent_config.TEMPERATURE
     ) -> str:
         if agent_config.NLPAGENTMODEL == "gpt-4":
             model = "gpt-4"

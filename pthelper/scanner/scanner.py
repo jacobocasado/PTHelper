@@ -192,6 +192,7 @@ class NmapScanner(Scanner):
 
                                         # Go to the next IP to handle the exception.
                                         pass
+
                 # Update the dictionary of IPs with that port.
                 ip_dict.update(port_dict)
 
