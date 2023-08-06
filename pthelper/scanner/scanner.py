@@ -138,6 +138,7 @@ class NmapScanner(Scanner):
             # Save the useful information for each of the IPs
             ip_dict = {}
 
+
             # For each port of the IP containing information
             for port_info in data.get('ports', []):
 
@@ -148,6 +149,22 @@ class NmapScanner(Scanner):
 
                 # Create a dict with all these values an the port ID as the key
                 port_dict = {portid: {"service": service, "version": version}}
+
+                if portid == '139':
+                    # Perform the query.
+                    r = nvdlib.searchCVE(cveId="CVE-2017-0144", key=scanner_config.NVD_API_KEY)[0]
+
+                    # Store the CVE ID, the CVSS and also the CVSS score and CVE description
+                    # from the NVD query.
+                    port_dict[portid]['CVE-2017-0144'] = {
+                        "cve": "CVE-2017-0144",
+                        "description": r.descriptions[0].value,
+                        "cvss": r.score[1],
+                        "score_type": r.score[0],
+                        "score": r.score[1],
+                        "severity": r.score[2]
+                    }
+
 
                 # For each one of the scripts executed in the port
                 for script in port_info.get('scripts', []):
@@ -168,7 +185,7 @@ class NmapScanner(Scanner):
                                     # Try to perform a query to the NVD for that ID.
                                     try:
                                         # Perform the query.
-                                        r = nvdlib.searchCVE(cveId=cve_id, key=scanner_config.NVD_API_KEY)[0]
+                                        r = nvdlib.searchCVE(cveId=cve_id, key=scanner_config.NVD_API_KEY, delay=1)[0]
 
                                         # Store the CVE ID, the CVSS and also the CVSS score and CVE description
                                         # from the NVD query.
@@ -193,8 +210,9 @@ class NmapScanner(Scanner):
                                         # Go to the next IP to handle the exception.
                                         pass
 
-                # Update the dictionary of IPs with that port.
-                ip_dict.update(port_dict)
+            # Update the dictionary of IPs with that port.
+            ip_dict.update(port_dict)
+
 
             # When all ports of that IP are parsed and enhanced, update the output dictionary.
             self.scanner_output[ip] = ip_dict
