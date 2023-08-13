@@ -97,6 +97,7 @@ def parse_args():
     general_config.RESULTSFILE = os.path.join(general_config.PROJECTPATH, 'results.json')
     general_config.PROJECTEXISTS = os.path.exists(general_config.CONFIGFILE)
     general_config.CONVERSATIONFILE = os.path.join(general_config.PROJECTPATH, 'conversation_id.txt')
+    general_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'desired_logo.png')
 
     # If this is the first time using the tool, user information is requested
     if not os.path.exists(general_config.CONFIG_PATH):
@@ -123,7 +124,6 @@ def main():
 
     agent = NLPAgent(args.agent)
     executive_summary = agent.create_executive_summary(exploiter_results)
-    print(executive_summary)
 
     # If a reporting tool and project was specified, create a Reporter object
     if args.reporter and args.project:
@@ -131,7 +131,6 @@ def main():
         reporter.add_exploiter_info(exploiter_results)
         reporter.add_executive_summary(executive_summary)
         reporter.render()
-
 
 
 # Main script entry point

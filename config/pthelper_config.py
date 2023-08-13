@@ -9,7 +9,7 @@ class GeneralConfig:
     # Specify the configuration file, to save user presets like name, language, email, etc.
     CONFIG_PATH = 'config/config.json'
     BASE_CORP_LOGO = 'resources/corp_logo.png'
-    DESIRED_CORP_LOGO = 'config/desired_logo.png'
+    DESIRED_CORP_LOGO = None
 
     PROJECTPATH = None
     CONFIGFILE = None

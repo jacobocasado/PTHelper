@@ -15,7 +15,7 @@ from datetime import date
 
 # Class for the reporter which accepts different modes
 class Reporter:
-    def __new__(cls, mode, port_contexts):
+    def __new__(cls, mode):
         reporter_classes = {
             'docxtpl_jinja': DocxJinjaTemplateReporter
             # Add here future scanner modes with the flag that the user has to introduce and the children class name.
@@ -79,8 +79,8 @@ class Reporter:
 
 # Class for a specific type of reporter that uses the DocxTemplate and Jinja2 for reporting
 class DocxJinjaTemplateReporter(Reporter):
-    def __init__(self, mode, scan_output):
-        super().__init__(mode, scan_output)
+    def __init__(self, mode):
+        super().__init__(mode)
         # If the project directory does not exist, create it
         if not general_config.PROJECTEXISTS:
             os.makedirs(general_config.PROJECTPATH, exist_ok=True)
@@ -121,9 +121,7 @@ class DocxJinjaTemplateReporter(Reporter):
         jinja_env = jinja2.Environment(autoescape=True)
 
         # If a logo exists for the corporation, replace the existing one in the template with it
-        print("A QL", general_config.DESIRED_CORP_LOGO)
         if os.path.exists(general_config.DESIRED_CORP_LOGO):
-            print("CAMBIO WEON")
             tpl.replace_media(general_config.BASE_CORP_LOGO, general_config.DESIRED_CORP_LOGO)
 
         # Update basic report things that do not depend on given context, as the report date, project name, etc.
