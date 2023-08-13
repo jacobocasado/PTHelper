@@ -19,9 +19,6 @@ class NLPAgent:
     def __init__(self, mode):
         self.mode = mode
 
-    def process(self, basic_context):
-        print(f"[AGENT] Starting...")
-
 # Children class that uses ChatGPT agent with ChatGPTAPI library as the NLPAgent type.
 # This is the first NLPAgent type available.
 class ChatGPTAPIAgent(NLPAgent):
@@ -32,9 +29,7 @@ class ChatGPTAPIAgent(NLPAgent):
         self.api = ChatGPTAPI()
         openai.api_key = agent_config.OPENAI_API_KEY
 
-    def cve_summary(self,port_context):
-        response, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.console_output)
-        response = self.api.send_message(str(port_context), conversation_id)
-        print(response)
-    def process(self, context):
-        self.cve_summary(context)
+    def create_executive_summary(self, exploiter_output):
+        executive_summary, conversation_id = self.api.start_conversation_with_context(NLPAgentPrompt.executive_summary)
+        response = self.api.send_message(str(exploiter_output), conversation_id)
+        return response

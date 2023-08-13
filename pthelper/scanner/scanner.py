@@ -46,7 +46,7 @@ class Scanner:
         self.console = Console()
 
         # Informative message
-        self.console.print(f"Initializing {mode} scanner module on {scanned_ips}.")
+        self.console.print(f"Initializing [bold cyan]{mode}[/] [bright_white]SCANNER[/] module on [cyan]{scanned_ips}[/].", style="bright_magenta")
 
 # Children class that uses Nmap3 library as the scanner type.
 # This is the first scanner type available.
@@ -62,7 +62,7 @@ class NmapScanner(Scanner):
     # This method creates a new NmapHostDiscovery instance, and performs a scan on the IP and port range specified in the instance
     def open_port_discovery(self):
 
-        self.console.print(f"Starting port discovery on", self.scanned_ips, end=". \n", style="bold magenta")
+        self.console.print(f"Starting port discovery on [cyan]{self.scanned_ips}[/].", style="bright_magenta")
 
         # Instanciate the nmap3 instance
         nmap_instance = nmap3.NmapHostDiscovery()
@@ -113,7 +113,7 @@ class NmapScanner(Scanner):
 
         # Iterate over all IP addresses.
         for ip in self.ip_open_ports.keys():
-            self.console.print(f"Performing vulnerability discovery on", ip)
+            self.console.print(f"Performing vulnerability discovery on [cyan]{ip}[/].", style="bright_magenta")
             vulners_raw = nmap_instance.nmap_version_detection(
                 ip,
                 args=f"--script vulners -p{ports_str}"
@@ -213,7 +213,6 @@ class NmapScanner(Scanner):
             # Update the dictionary of IPs with that port.
             ip_dict.update(port_dict)
 
-
             # When all ports of that IP are parsed and enhanced, update the output dictionary.
             self.scanner_output[ip] = ip_dict
 
@@ -252,9 +251,10 @@ class NmapScanner(Scanner):
                 self.scanner_output[ip].update(dict)
 
             self.console.print(
-                f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.")
+                f"PTHelper not running as root. OS scan will not work, losing this information for all the assessment.", style="bold red underline")
         pass
 
+    # Method to sort CVEs per CVSS score. Highest CVSS scores are sorted higher. Just to manage better the dictionary for future usages.
     def sort_cves_by_cvss(self):
         for ip, cves_data in self.scanner_output.items():
             if 'CVEs' in cves_data:
@@ -278,6 +278,6 @@ class NmapScanner(Scanner):
         # It is best to sort the CVEs per CVSS, for the future module usage.
         self.sort_cves_by_cvss()
 
-
+        self.console.print(f"Scanner module finished execution. Starting [bright_green]Exploiter[/] module. \n", style="bold bright_magenta")
         # Return the information for the rest of the modules.
         return self.scanner_output

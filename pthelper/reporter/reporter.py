@@ -24,12 +24,12 @@ class Reporter:
         return super(Reporter, cls).__new__(reporter_class)
 
     # Initialize the reporter with a mode
-    def __init__(self, mode, scanner_output):
+    def __init__(self, mode, exploiter_output):
         self.mode = mode
-        self.create_port_contexts(scanner_output)
+        self.create_port_contexts(exploiter_output)
         self.context = None
 
-    def create_port_contexts(self, scanner_output):
+    def create_port_contexts(self, exploiter_output):
         if os.path.exists(general_config.RESULTSFILE):
             # If the "results.json" file exists, read its content and update self.port_contexts
             with open(general_config.RESULTSFILE, 'r') as f:
@@ -44,7 +44,7 @@ class Reporter:
         # Convert the current port_context_rows IPs into a dictionary for easier update
         current_ips = {row['label']: row for row in self.port_contexts['port_context_rows']}
 
-        for ip, data in scanner_output.items():
+        for ip, data in exploiter_output.items():
             ports = []
             services = []
             versions = []
@@ -96,15 +96,7 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(general_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f, indent=2)
 
-    def report(self):
-
-        # Load a Word template using docxtpl
-        tpl = DocxTemplate('templates/template.docx')
-        # Create a Jinja2 environment with autoescape turned on for security
-        jinja_env = jinja2.Environment(autoescape=True)
-        # If a logo exists for the corporation, replace the existing one in the template with it
-        if os.path.exists(general_config.DESIRED_CORP_LOGO):
-            tpl.replace_media(general_config.BASE_CORP_LOGO, general_config.DESIRED_CORP_LOGO)
+    def update_reporter_info(self):
 
         # Load configuration files into context for rendering the Jinja template
         with open(general_config.CONFIG_PATH) as config_file:
@@ -123,6 +115,18 @@ class DocxJinjaTemplateReporter(Reporter):
         self.update_report_date(self.context)
         self.update_project_name()
 
+
+    def render(self):
+
+        # Load a Word template using docxtpl
+        tpl = DocxTemplate('templates/template.docx')
+        # Create a Jinja2 environment with autoescape turned on for security
+        jinja_env = jinja2.Environment(autoescape=True)
+
+        # If a logo exists for the corporation, replace the existing one in the template with it
+        if os.path.exists(general_config.DESIRED_CORP_LOGO):
+            tpl.replace_media(general_config.BASE_CORP_LOGO, general_config.DESIRED_CORP_LOGO)
+
         # Render the template with the context data
         tpl.render(self.context, jinja_env)
 
@@ -139,4 +143,10 @@ class DocxJinjaTemplateReporter(Reporter):
         project_name = {
             "project_name": "TFM_DEMO"
         }
+        self.context.update(project_name)
 
+    def add_executive_summary(self, executive_summary):
+        json = {
+            "executive_summary": executive_summary
+        }
+        self.context.update(json)

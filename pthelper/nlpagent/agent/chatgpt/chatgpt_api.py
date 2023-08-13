@@ -65,7 +65,6 @@ class ChatGPTAPI:
         encoding = tiktoken.encoding_for_model(model)
         num_tokens = 0
         for message in messages:
-            print(message)
             num_tokens += tokens_per_message
             for key, value in message.items():
                 num_tokens += len(encoding.encode(value))
@@ -239,11 +238,9 @@ class ChatGPTAPI:
         conversation.message_list.append(message)
 
         self.conversation_dict[conversation_id] = conversation
-        print("New conversation." + conversation_id + " is created." + "\n")
         return response, conversation_id
 
     def send_message(self, message, conversation_id, debug_mode=False):
-        print(message)
         # create message history based on the conversation id
         chat_message = []
         data = message
@@ -274,7 +271,6 @@ class ChatGPTAPI:
             message.request_end_timestamp - message.request_start_timestamp
         )
         conversation.message_list.append(message)
-        print(f"Type of conversation_id: {type(conversation_id)}")
         conversation = self.conversation_dict[conversation_id]
         self.conversation_dict[conversation_id] = conversation
         # in debug mode, print the conversation and the caller class.

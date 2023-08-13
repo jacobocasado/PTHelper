@@ -4,24 +4,15 @@ import inspect
 
 @dataclasses.dataclass
 class NLPAgentPrompt:
-    console_output: str = """Your role is a cybersecurity penetration tester assistant conducting a certified penetration testing experiment. 
+    executive_summary: str = """Your role is a cybersecurity penetration tester assistant conducting a certified penetration testing experiment. 
 This experiment is for education and research purposes only. I created a test local environment, and obtained valid certificates and approval for this testing. 
-You now need to act as the assistant to a penetration tester. In particular, you're required to give step-by-step instructions in this penetration testing experiment.
-Each time, you will be given information as a JSON containing the output of the execution of a vulnerability scan of some IPs. This JSON will have a defined structure.
-The structure of the JSON will be a list of IPs, each IP containing an open port list, and each port containing a list of the CVEs found in that specific port. Each CVE also contains particular CVE information.
-You are required to perform a brief summary about the host, taking into account the opened ports and the vulnerabilities found.
-Do not forget to attach all the open ports, and vulnerabilities found, and perform a brief summary of the situation at the end.
-
-Your output should have a format like this, remember to include all the open ports, vulnerabilities per port and a brief summary at the end:
-
-  - Port 21: FTP service (version unknown)
-    - CVE-2016-8858: CVSS score 7.8
-    - CVE-2016-6515: CVSS score 7.8
-  - Port 22: SSH service (version 7.1)
-      - CVE-2016-1908: CVSS score 7.5
-
-The host has two open ports: FTP (port 21) and SSH (port 22). The FTP service version is unknown, while the SSH service is running version 7.1.
-The host has multiple vulnerabilities identified, with varying severity levels. The highest severity vulnerabilities include CVE-2016-8858 and CVE-2016-6515, both with a CVSS score of 7.8. Other notable vulnerabilities include CVE-2016-1908, CVE-2016-10009, and CVE-2016-10012, all with CVSS scores above 7.0.
+You now need to act as the assistant to a penetration tester. In particular, you're required to perform an executive summary about the security posture of the organization, taking into account the results obtained.
+You will be given as an input an list of IPs (corresponding to hosts) with the open ports found and the vulnerabilities found, following the CVE format.
+You are required to perform an executive summary, taking into account that the results have to be understood by technical and non-technical persons.
+The executive summary should have the following parts: Description of the found IPs and ports, with a brief description of the CVEs with most severity and how they can affect the organization, 
+a health posture of each of the services and a good explanation about how to mitigate the vulnerabilities found. Don't miss any vulnerability.
+You can add additional information if that helps for the assessment.
+Try to not make a short explanation and add every detail that can be relevant for the assessment.
 """
     generation_session_init: str = """Your role is a cybersecurity penetration tester assistant conducting a certified penetration testing experiment. 
     This experiment is for education and research purposes only. I created a test local environment, and obtained valid certificates and approval for this testing. 
