@@ -7,7 +7,7 @@ import argparse
 from pthelper.banner.banner import Banner
 from pthelper.scanner.scanner import Scanner
 from pthelper.reporter.reporter import Reporter
-from exploiter.exploiter import Exploiter
+from pthelper.exploiter.exploiter import Exploiter
 from pthelper.nlpagent.agent.chatgpt.chatgptagent import NLPAgent
 from config.pthelper_config import general_config
 
@@ -95,16 +95,8 @@ def parse_args():
     general_config.PROJECTPATH = os.path.join('projects', args.project)
     general_config.CONFIGFILE = os.path.join(general_config.PROJECTPATH, 'config.json')
     general_config.RESULTSFILE = os.path.join(general_config.PROJECTPATH, 'results.json')
-    general_config.DESIRED_CORP_LOGO = os.path.join('projects', args.project, 'corp_logo.png')
     general_config.PROJECTEXISTS = os.path.exists(general_config.CONFIGFILE)
     general_config.CONVERSATIONFILE = os.path.join(general_config.PROJECTPATH, 'conversation_id.txt')
-
-    # Validate the entered IP address
-    # try:
-    #     ipaddress.ip_interface(args.ip_address)
-    # except ValueError:
-    #     print("Invalid IP address or CIDR notation. Please insert an IP address with valid format (can be with a CIDR)")
-    #     exit(1)
 
     # If this is the first time using the tool, user information is requested
     if not os.path.exists(general_config.CONFIG_PATH):
@@ -126,16 +118,21 @@ def main():
     # Perform the scan and get the scan context
     scan_results = scanner.scan()
 
-    # If a reporting tool and project was specified, create a Reporter object
-    if args.reporter and args.project:
-        reporter = Reporter(args.reporter, scan_results)
-        reporter.report()
-
     exploiter = Exploiter(args.exploiter, scan_results)
-    exploiter.exploit()
+    exploiter_results = exploiter.exploit()
 
     agent = NLPAgent(args.agent)
-    agent.process(scan_results)
+    executive_summary = agent.create_executive_summary(exploiter_results)
+    print(executive_summary)
+
+    # If a reporting tool and project was specified, create a Reporter object
+    if args.reporter and args.project:
+        reporter = Reporter(args.reporter)
+        reporter.add_exploiter_info(exploiter_results)
+        reporter.add_executive_summary(executive_summary)
+        reporter.render()
+
+
 
 # Main script entry point
 if __name__ == '__main__':

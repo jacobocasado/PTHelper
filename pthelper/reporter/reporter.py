@@ -24,9 +24,8 @@ class Reporter:
         return super(Reporter, cls).__new__(reporter_class)
 
     # Initialize the reporter with a mode
-    def __init__(self, mode, exploiter_output):
+    def __init__(self, mode):
         self.mode = mode
-        self.create_port_contexts(exploiter_output)
         self.context = None
 
     def create_port_contexts(self, exploiter_output):
@@ -96,7 +95,9 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(general_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f, indent=2)
 
-    def update_reporter_info(self):
+    def add_exploiter_info(self, exploiter_results):
+
+        self.create_port_contexts(exploiter_results)
 
         # Load configuration files into context for rendering the Jinja template
         with open(general_config.CONFIG_PATH) as config_file:
@@ -112,10 +113,6 @@ class DocxJinjaTemplateReporter(Reporter):
             # Merge the results dictionary with the previous merged dictionaries
             self.context.update(context_results)
 
-        self.update_report_date(self.context)
-        self.update_project_name()
-
-
     def render(self):
 
         # Load a Word template using docxtpl
@@ -124,8 +121,14 @@ class DocxJinjaTemplateReporter(Reporter):
         jinja_env = jinja2.Environment(autoescape=True)
 
         # If a logo exists for the corporation, replace the existing one in the template with it
+        print("A QL", general_config.DESIRED_CORP_LOGO)
         if os.path.exists(general_config.DESIRED_CORP_LOGO):
+            print("CAMBIO WEON")
             tpl.replace_media(general_config.BASE_CORP_LOGO, general_config.DESIRED_CORP_LOGO)
+
+        # Update basic report things that do not depend on given context, as the report date, project name, etc.
+        self.update_report_date(self.context)
+        self.update_project_name()
 
         # Render the template with the context data
         tpl.render(self.context, jinja_env)
