@@ -80,13 +80,18 @@ def parse_args():
     parser = argparse.ArgumentParser()
 
     # Add accepted arguments with their descriptions and types
-    parser.add_argument('--ip', dest='ip_address', type=str, help='IP address to scan')
-    parser.add_argument('--port', dest='ports', type=check_ports, help='Ports to scan')
-    parser.add_argument('--scanner', dest='scanner', type=str, help='scanner tool to use (available: nmap)')
-    parser.add_argument('--exploiter', dest='exploiter', type=str, help='Tool to retrieve exploit scripts (e.g., exploitdb)')
-    parser.add_argument('--reporter', dest='reporter', type=str, help='reporter tool to use (available: docxtpl)')
-    parser.add_argument('--project', dest='project', type=str, help='Project to store information (e.g., TFM)')
-    parser.add_argument('--agent', dest='agent', type=str, help='NLP Agent (e.g., chatgpt)')
+    parser.add_argument('--ip', dest='ip_address', type=str, required=True, help='IP address to scan')
+    parser.add_argument('--port', dest='ports', type=str, required=True, help='Ports to scan')
+    parser.add_argument('--scanner', dest='scanner', type=str, required=True,
+                        help='scanner tool to use (available: nmap)')
+    parser.add_argument('--exploiter', dest='exploiter', type=str, required=True,
+                        help='Tool to retrieve exploit scripts (e.g., exploitdb)')
+    parser.add_argument('--reporter', dest='reporter', type=str, required=True,
+                        help='reporter tool to use (available: docxtpl)')
+    parser.add_argument('--project', dest='project', type=str, required=True,
+                        help='Project to store information (e.g., TFM)')
+    parser.add_argument('--agent', dest='agent', type=str, required=True, help='NLP Agent (e.g., chatgpt)')
+
     # Parse the arguments
     args = parser.parse_args()
 
