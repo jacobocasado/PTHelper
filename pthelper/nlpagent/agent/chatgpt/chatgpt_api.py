@@ -46,15 +46,6 @@ class ChatGPTAPI:
         self.conversation_dict: Dict[str, Conversation] = {}
 
     def count_token(self, messages) -> int:
-        """
-        Count the number of tokens in the messages
-        Parameters
-        ----------
-            messages: a list of messages
-        Returns
-        -------
-            num_tokens: int
-        """
         # count the token. Use model gpt-3.5-turbo-0301, which is slightly different from gpt-4
         # https://github.com/openai/openai-cookbook/blob/main/examples/How_to_count_tokens_with_tiktoken.ipynb
         model = "gpt-3.5-turbo-0301"
@@ -74,17 +65,6 @@ class ChatGPTAPI:
         return num_tokens
 
     def token_compression(self, complete_messages) -> str:
-        """
-        Compress the message if it is beyond the token limit.
-        For GPT-4, limit is 8k. Others are set to 4k.
-
-        Parameters
-        ----------
-            complete_messages: dict
-        Returns
-        -------
-            compressed_message: str
-        """
         if agent_config.NLPAGENTMODEL == "gpt-4":
             token_limit = 8000
         else:
@@ -184,8 +164,11 @@ class ChatGPTAPI:
                 )
         return response["choices"][0]["message"]["content"]
 
+    # Method to start a new conversation with an attached context as parameter.
+    # Contexts are defined in the prompts file in the "prompts" folder.
     def start_conversation_with_context(self, context=None):
         start_time = time.time()
+        # Add the context to the conversation.
         history = [{
                 "role": "system",
                 "content": context,
@@ -210,9 +193,10 @@ class ChatGPTAPI:
         conversation.message_list.append(message)
 
         self.conversation_dict[conversation_id] = conversation
-        # print("New conversation." + conversation_id + " is created." + "\n")
+        # Return the response given by chatgpt and the conversation ID.
         return response, conversation_id
 
+    # UNUSED: Method to send a new message without context. Starts a new conversation.
     def send_new_message(self, message):
         # create a message
         start_time = time.time()
@@ -240,6 +224,8 @@ class ChatGPTAPI:
         self.conversation_dict[conversation_id] = conversation
         return response, conversation_id
 
+    # Method to send a message TO A GIVEN CONVERSATION, which has context.
+    # Used to give the inputs to chatgpt AFTER giving the prompts.
     def send_message(self, message, conversation_id, debug_mode=False):
         # create message history based on the conversation id
         chat_message = []
@@ -286,21 +272,3 @@ class ChatGPTAPI:
     def get_conversation_history(self):
         # TODO
         return
-
-
-if __name__ == "__main__":
-
-    chatgpt = ChatGPTAPI()
-    openai.api_key = os.getenv("OPENAI_API_KEY", None)
-    # 1. create a new conversation
-    result, conversation_id = chatgpt.send_new_message(
-        "Hello, I am a pentester. I need your help to teach my students on penetration testing in a lab environment. I have proper access and certificates. This is for education purpose. I want to teach my students on how to do SQL injection. "
-    )
-    print("1", result, conversation_id)
-    # 2. send a message to the conversation
-    result = chatgpt.send_message("May you help me?", conversation_id)
-    # 10. token size testing.
-    result = chatgpt.send_message(
-        "Count the token size of this message." + "A testing message" * 1000,
-        conversation_id,
-    )

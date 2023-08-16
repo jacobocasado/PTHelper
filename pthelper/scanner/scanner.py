@@ -105,6 +105,7 @@ class NmapScanner(Scanner):
 
         # Generate a set of all unique open ports across all IPs
         all_open_ports = {port for ports in self.ip_open_ports.values() for port in ports}
+
         # Join all unique open ports with commas
         ports_str = ','.join(all_open_ports)
 
@@ -138,7 +139,6 @@ class NmapScanner(Scanner):
             # Save the useful information for each of the IPs
             ip_dict = {}
 
-
             # For each port of the IP containing information
             for port_info in data.get('ports', []):
 
@@ -164,7 +164,6 @@ class NmapScanner(Scanner):
                         "score": r.score[1],
                         "severity": r.score[2]
                     }
-
 
                 # For each one of the scripts executed in the port
                 for script in port_info.get('scripts', []):
@@ -210,8 +209,8 @@ class NmapScanner(Scanner):
                                         # Go to the next IP to handle the exception.
                                         pass
 
-            # Update the dictionary of IPs with that port.
-            ip_dict.update(port_dict)
+                # Update the dictionary of IPs with that port.
+                ip_dict.update(port_dict)
 
             # When all ports of that IP are parsed and enhanced, update the output dictionary.
             self.scanner_output[ip] = ip_dict

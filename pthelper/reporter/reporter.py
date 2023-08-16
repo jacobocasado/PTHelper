@@ -13,6 +13,9 @@ from config.pthelper_config import general_config
 # To get today's date.
 from datetime import date
 
+from rich.console import Console
+
+
 # Class for the reporter which accepts different modes
 class Reporter:
     def __new__(cls, mode):
@@ -27,6 +30,7 @@ class Reporter:
     def __init__(self, mode):
         self.mode = mode
         self.context = None
+        self.console = Console()
 
     def create_port_contexts(self, exploiter_output):
         if os.path.exists(general_config.RESULTSFILE):
@@ -95,10 +99,6 @@ class DocxJinjaTemplateReporter(Reporter):
             with open(general_config.CONFIGFILE, 'w') as f:
                 json.dump(config, f, indent=2)
 
-    def add_exploiter_info(self, exploiter_results):
-
-        self.create_port_contexts(exploiter_results)
-
         # Load configuration files into context for rendering the Jinja template
         with open(general_config.CONFIG_PATH) as config_file:
             self.context = json.load(config_file)
@@ -112,6 +112,9 @@ class DocxJinjaTemplateReporter(Reporter):
             context_results = json.load(project_config_file)
             # Merge the results dictionary with the previous merged dictionaries
             self.context.update(context_results)
+
+    def add_exploiter_info(self, exploiter_results):
+        self.create_port_contexts(exploiter_results)
 
     def render(self):
 
@@ -149,5 +152,11 @@ class DocxJinjaTemplateReporter(Reporter):
     def add_executive_summary(self, executive_summary):
         json = {
             "executive_summary": executive_summary
+        }
+        self.context.update(json)
+
+    def add_finding_report(self, finding_dictionary):
+        json = {
+            'finding_dictionary': finding_dictionary
         }
         self.context.update(json)
