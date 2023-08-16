@@ -11,7 +11,6 @@ from pthelper.exploiter.exploiter import Exploiter
 from pthelper.nlpagent.agent.chatgpt.chatgptagent import NLPAgent
 from config.pthelper_config import general_config
 
-# TODO Comment everything
 # TODO Conversational Agent as a module that can be loaded. Experimental in the report. Used for webapp pentest.
 # TODO gettext python so the output and the report is language-modular.
 
@@ -122,16 +121,21 @@ def main():
     exploiter = Exploiter(args.exploiter, scan_results)
     exploiter_results = exploiter.exploit()
 
-    agent = NLPAgent(args.agent)
-    executive_summary = agent.create_executive_summary(exploiter_results)
 
-    # If a reporting tool and project was specified, create a Reporter object
+    # If a reporting tool and project was specified, create a Reporter and Agent object
     if args.reporter and args.project:
+
+        agent = NLPAgent(args.agent)
+        # Given the Exploiter results, create an executive summary and a finding report using the NLPAgent.
+        executive_summary = agent.create_executive_summary(exploiter_results)
+        finding_report = agent.perform_finding_report(exploiter_results)
+
+        # Add all the information gathered by the previous modules in the report with the Reporter class.
         reporter = Reporter(args.reporter)
         reporter.add_exploiter_info(exploiter_results)
         reporter.add_executive_summary(executive_summary)
+        reporter.add_finding_report(finding_report)
         reporter.render()
-
 
 # Main script entry point
 if __name__ == '__main__':
