@@ -19,11 +19,11 @@ class GeneralConfig:
 
 @dataclasses.dataclass
 class ScannerConfig:
-    NVD_API_KEY = "98c59cce-e235-4274-ad9c-df428625c775" # Put NVD API key here!
+    NVD_API_KEY = "API_KEY" # Put NVD API key here!
 
 @dataclasses.dataclass
 class AgentConfig:
-    OPENAI_API_KEY = "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" # Put OpenAI Key here!
+    OPENAI_API_KEY = "API_KEY" # Put OpenAI Key here!
     CONVERSATIONPATH = None
     HISTORY_LENGTH = 20
     ERROR_WAIT_TIME = 5
