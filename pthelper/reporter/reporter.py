@@ -79,6 +79,8 @@ class Reporter:
         with open(general_config.RESULTSFILE, 'w') as f:
             json.dump(self.port_contexts, f, indent=4)
 
+        self.context.update(self.port_contexts)
+
         return self.port_contexts
 
 # Class for a specific type of reporter that uses the DocxTemplate and Jinja2 for reporting
@@ -92,8 +94,12 @@ class DocxJinjaTemplateReporter(Reporter):
             # Capture user input for corporation details
             corp_name = input('Insert the target name: ')
             corp_address = input('Insert the target contact e-mail address: ')
+            corp_contact_name = input('Insert the contact name of the corporation: ')
+            corp_job_name = input('Insert the job position of the contact person: ')
             config = {'corp_name': corp_name,
-                      'corp_address': corp_address}
+                      'corp_address': corp_address,
+                      'corp_contact_name': corp_contact_name,
+                      'corp_job_name': corp_job_name}
 
             # Write these details to a JSON configuration file
             with open(general_config.CONFIGFILE, 'w') as f:
@@ -108,18 +114,13 @@ class DocxJinjaTemplateReporter(Reporter):
             # Merge the two dictionaries
             self.context.update(context_project)
 
-        with open(general_config.RESULTSFILE) as project_config_file:
-            context_results = json.load(project_config_file)
-            # Merge the results dictionary with the previous merged dictionaries
-            self.context.update(context_results)
-
     def add_exploiter_info(self, exploiter_results):
         self.create_port_contexts(exploiter_results)
 
     def render(self):
 
         # Load a Word template using docxtpl
-        tpl = DocxTemplate('templates/template.docx')
+        tpl = DocxTemplate('resources/templates/template.docx')
         # Create a Jinja2 environment with autoescape turned on for security
         jinja_env = jinja2.Environment(autoescape=True)
 
@@ -145,7 +146,7 @@ class DocxJinjaTemplateReporter(Reporter):
 
     def update_project_name(self):
         project_name = {
-            "project_name": "TFM_DEMO"
+            "project_name": "Demo for Master Thesis (TFM)"
         }
         self.context.update(project_name)
 
@@ -160,3 +161,14 @@ class DocxJinjaTemplateReporter(Reporter):
             'finding_dictionary': finding_dictionary
         }
         self.context.update(json)
+
+    def add_severity_count(self, severity_count):
+        json = {
+            'critical_vulns':severity_count['critical_vulns'],
+            'high_vulns':severity_count['high_vulns'],
+            'moderate_vulns':severity_count['moderate_vulns'],
+            'low_vulns:':severity_count['low_vulns'],
+            'informational_vulns':severity_count['informational_vulns']
+        }
+        self.context.update(json)
+

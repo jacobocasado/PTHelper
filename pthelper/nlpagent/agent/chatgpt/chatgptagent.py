@@ -80,8 +80,10 @@ class ChatGPTAPIAgent(NLPAgent):
                                 # Obtain mitigation steps from ChatGPT API given the vulnerability
                                 mitigation = self.api.send_message(str(value), mitigation_conversation_id)
                                 # Obtain a severity rationale given the vulnerability
-                                severity_rationale = self.api.send_message(str(description + "Severity of this vulnerability is " + str(severity)), severity_conversation_id)
-
+                                if(severity != None):
+                                    severity_rationale = self.api.send_message(str(description + "Severity of this vulnerability is " + str(severity)), severity_conversation_id)
+                                else:
+                                    severity_rationale = "The vulnerability does not have a severity attached to."
                                 # Obtain the exploits of the vulnerability that were found with the Exploiter module.
                                 exploits = value.get('exploits', None)
 

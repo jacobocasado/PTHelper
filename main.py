@@ -124,7 +124,7 @@ def main():
     scan_results = scanner.scan()
 
     exploiter = Exploiter(args.exploiter, scan_results)
-    exploiter_results = exploiter.exploit()
+    exploiter_results, severity_count = exploiter.exploit()
 
 
     # If a reporting tool and project was specified, create a Reporter and Agent object
@@ -132,14 +132,15 @@ def main():
 
         agent = NLPAgent(args.agent)
         # Given the Exploiter results, create an executive summary and a finding report using the NLPAgent.
-        executive_summary = agent.create_executive_summary(exploiter_results)
-        finding_report = agent.perform_finding_report(exploiter_results)
+        #executive_summary = agent.create_executive_summary(scan_results)
+        #finding_report = agent.perform_finding_report(exploiter_results)
 
         # Add all the information gathered by the previous modules in the report with the Reporter class.
         reporter = Reporter(args.reporter)
         reporter.add_exploiter_info(exploiter_results)
-        reporter.add_executive_summary(executive_summary)
-        reporter.add_finding_report(finding_report)
+        #reporter.add_executive_summary(executive_summary)
+        #reporter.add_finding_report(finding_report)
+        reporter.add_severity_count(severity_count)
         reporter.render()
 
 # Main script entry point
