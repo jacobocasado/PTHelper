@@ -16,7 +16,6 @@ from config.pthelper_config import general_config, scanner_config
 # doing some operations.
 
 # Define a scanner class that takes in ip_address, ports, and mode of scan
-# TODO hacer el resto de modulos, pero tener en cuenta que se puede mejorar esto para automatizar la explotacion
 class Scanner:
     # Use __new__ to create a new instance of the scanner_class based on the provided mode
     def __new__(cls, ip_address, ports, mode):

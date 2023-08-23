@@ -1,5 +1,4 @@
 import colorama
-
 colorama.init()
 
 banner = [

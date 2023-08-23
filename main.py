@@ -3,7 +3,6 @@ import os
 import re
 import argparse
 
-
 from pthelper.banner.banner import Banner
 from pthelper.scanner.scanner import Scanner
 from pthelper.reporter.reporter import Reporter
@@ -81,7 +80,7 @@ def parse_args():
 
     # Add accepted arguments with their descriptions and types
     parser.add_argument('--ip', dest='ip_address', type=str, required=True, help='IP address to scan')
-    parser.add_argument('--port', dest='ports', type=str, required=True, help='Ports to scan')
+    parser.add_argument('--ports', dest='ports', type=str, required=True, help='Ports to scan')
     parser.add_argument('--scanner', dest='scanner', type=str, required=True,
                         help='scanner tool to use (available: nmap)')
     parser.add_argument('--exploiter', dest='exploiter', type=str, required=True,
@@ -132,14 +131,14 @@ def main():
 
         agent = NLPAgent(args.agent)
         # Given the Exploiter results, create an executive summary and a finding report using the NLPAgent.
-        #executive_summary = agent.create_executive_summary(scan_results)
-        #finding_report = agent.perform_finding_report(exploiter_results)
+        executive_summary = agent.create_executive_summary(scan_results)
+        finding_report = agent.perform_finding_report(exploiter_results)
 
         # Add all the information gathered by the previous modules in the report with the Reporter class.
         reporter = Reporter(args.reporter)
         reporter.add_exploiter_info(exploiter_results)
-        #reporter.add_executive_summary(executive_summary)
-        #reporter.add_finding_report(finding_report)
+        reporter.add_executive_summary(executive_summary)
+        reporter.add_finding_report(finding_report)
         reporter.add_severity_count(severity_count)
         reporter.render()
 
