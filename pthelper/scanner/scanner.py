@@ -149,21 +149,6 @@ class NmapScanner(Scanner):
                 # Create a dict with all these values an the port ID as the key
                 port_dict = {portid: {"service": service, "version": version}}
 
-                if portid == '139':
-                    # Perform the query.
-                    r = nvdlib.searchCVE(cveId="CVE-2017-0144", key=scanner_config.NVD_API_KEY)[0]
-
-                    # Store the CVE ID, the CVSS and also the CVSS score and CVE description
-                    # from the NVD query.
-                    port_dict[portid]['CVE-2017-0144'] = {
-                        "cve": "CVE-2017-0144",
-                        "description": r.descriptions[0].value,
-                        "cvss": r.score[1],
-                        "score_type": r.score[0],
-                        "score": r.score[1],
-                        "severity": r.score[2]
-                    }
-
                 # For each one of the scripts executed in the port
                 for script in port_info.get('scripts', []):
                     # If the script name is VULNERS (we want that)
